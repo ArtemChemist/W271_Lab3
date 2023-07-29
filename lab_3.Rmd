@@ -7,6 +7,24 @@ output:
 
 ```{r load packages, echo=FALSE, message=FALSE}
 library(tidyverse)
+library(tsibble)
+library(latex2exp)
+library(dplyr)
+library(magrittr)
+library(patchwork)
+library(lubridate)
+library(feasts)
+library(forecast)
+library(sandwich)
+if (!"fable" %in% rownames(installed.packages())) {
+  install.packages("fable")
+}
+library(fable)
+if (!"car" %in% rownames(installed.packages())) {
+  install.packages("car")
+}
+library(car)
+theme_set(theme_minimal())
 ```
 
 
@@ -43,6 +61,43 @@ desc
     - What is the average of `total_fatalities_rate` in each of the years in the time period covered in this dataset? 
 
 As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.
+
+```{r make speed_limit variable}
+my_panel <- data %>%
+  mutate(speed_limit = ifelse(sl55 >=0.5, "sl55", 
+                     ifelse(sl65 >=0.5, "sl65", 
+                     ifelse(sl70 >=0.5, "sl70", 
+                     ifelse(sl75 >=0.5, "sl75", 
+                     ifelse(slnone >=0.5, "slnone", "None")))))) %>% 
+  select(-sl55, -sl65, -sl70, -sl75, -slnone) %>% # Drop unused columns
+  mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
+
+```
+
+
+```{r make year_of_observation variable}
+# Create an empty vector to store the names of non-zero columns for each row
+result_vector <- character(nrow(my_panel))
+year_names <- names(my_panel[,26:50])
+# Loop through each row and find the non-zero column name (if any)
+for (i in 1:nrow(my_panel)) {
+  result_vector[i] <- year_names[my_panel[i,26:50] != 0]
+}
+# Add the new column to the dataframe
+my_panel$year_of_observation <- as.factor(result_vector)
+# Drop unnneded columns
+my_panel <- cbind(my_panel[,1:25], my_panel[,51:53])
+
+```
+
+```{r make bac variable}
+my_panel <- my_panel %>%
+  mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "bac10", 
+                       ifelse(bac08 >=0.5, "bac08", "None"))) %>% 
+  select(-bac10, -bac08) %>% 
+  mutate(blood_alc_lmt = as.factor(blood_alc_lmt))
+
+```
 
 # (15 points) Preliminary Model
 
