@@ -30,37 +30,30 @@ theme_set(theme_minimal())
 
 # U.S. traffic fatalities: 1980-2004
 
-In this lab, we are asking you to answer the following **causal** question: 
+\textcolor{darkgray}{In this lab, we are asking you to answer the following **causal** question:}
 
 > **"Do changes in traffic laws affect traffic fatalities?"**  
 
-To answer this question, please complete the tasks specified below using the data provided in `data/driving.Rdata`. This data includes 25 years of data that cover changes in various state drunk driving, seat belt, and speed limit laws. 
+\textcolor{darkgray}{To answer this question, please complete the tasks specified below using the data provided in `data/driving.Rdata`. This data includes 25 years of data that cover changes in various state drunk driving, seat belt, and speed limit laws.}
 
-Specifically, this data set contains data for the 48 continental U.S. states from 1980 through 2004. Various driving laws are indicated in the data set, such as the alcohol level at which drivers are considered legally intoxicated. There are also indicators for “per se” laws—where licenses can be revoked without a trial—and seat belt laws. A few economics and demographic variables are also included. The description of the each of the variables in the dataset is also provided in the dataset. 
+\textcolor{darkgray}{Specifically, this data set contains data for the 48 continental U.S. states from 1980 through 2004. Various driving laws are indicated in the data set, such as the alcohol level at which drivers are considered legally intoxicated. There are also indicators for “per se” laws—where licenses can be revoked without a trial—and seat belt laws. A few economics and demographic variables are also included. The description of the each of the variables in the dataset is also provided in the dataset.}
 
-```{r load data, echo = TRUE}
+```{r load data, echo = FALSE}
 load(file="./data/driving.RData")
 
 ## please comment these calls in your work 
-glimpse(data)
-desc
+# glimpse(data)
+# desc
 ```
 
 
 # (30 points, total) Build and Describe the Data 
 
-1. (5 points) Load the data and produce useful features. Specifically: 
-    - Produce a new variable, called `speed_limit` that re-encodes the data that is in `sl55`, `sl65`, `sl70`, `sl75`, and `slnone`; 
-    - Produce a new variable, called `year_of_observation` that re-encodes the data that is in `d80`, `d81`, ... , `d04`. 
-    - Produce a new variable for each of the other variables that are one-hot encoded (i.e. `bac*` variable series). 
-    - Rename these variables to sensible names that are legible to a reader of your analysis. For example, the dependent variable as provided is called, `totfatrte`. Pick something more sensible, like, `total_fatalities_rate`. There are few enough of these variables to change, that you should change them for all the variables in the data. (You will thank yourself later.)
-2. (5 points) Provide a description of the basic structure of the dataset. What is this data? How, where, and when is it collected? Is the data generated through a survey or some other method? Is the data that is presented a sample from the population, or is it a *census* that represents the entire population? Minimally, this should include:
-    - How is the our dependent variable of interest `total_fatalities_rate` defined? 
-3. (20 points) Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable `total_fatalities_rate` and the potential explanatory variables. Minimally, this should include: 
-    - How is the our dependent variable of interest `total_fatalities_rate` defined? 
-    - What is the average of `total_fatalities_rate` in each of the years in the time period covered in this dataset? 
-
-As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.
+1. \textcolor{darkgray}{(5 points) Load the data and produce useful features. Specifically:}
+    - \textcolor{darkgray}{Produce a new variable, called $speed_limit$ that re-encodes the data that is in $sl55$, $sl65$, $sl70$, $sl75$, and $slnone$;}
+    - \textcolor{darkgray}{Produce a new variable, called $year\_of\_observation$ that re-encodes the data that is in $d80$, $d81$, ... , $d04$.}
+    - \textcolor{darkgray}{Produce a new variable for each of the other variables that are one-hot encoded (i.e. $bac*$ variable series).} 
+    - \textcolor{darkgray}{Rename these variables to sensible names that are legible to a reader of your analysis. For example, the dependent variable as provided is called, $totfatrte$. Pick something more sensible, like, $total_fatalities_rate$. There are few enough of these variables to change, that you should change them for all the variables in the data. (You will thank yourself later.)}
 
 ```{r make speed_limit variable}
 my_panel <- data %>%
@@ -73,7 +66,6 @@ my_panel <- data %>%
   mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
 
 ```
-
 
 ```{r make year_of_observation variable}
 # Create an empty vector to store the names of non-zero columns for each row
@@ -95,20 +87,81 @@ my_panel <- my_panel %>%
   mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "bac10", 
                        ifelse(bac08 >=0.5, "bac08", "None"))) %>% 
   select(-bac10, -bac08, -sbprim, -sbsecon) %>% 
-  mutate(blood_alc_lmt = as.factor(blood_alc_lmt)) %>%
-  mutate(seatbelt = as.factor(seatbelt))
+  mutate(blood_alc_lmt = as.factor(blood_alc_lmt),
+         seatbelt = as.factor(seatbelt),
+         zerotol = as.logical(ifelse(zerotol >=0.5, TRUE, FALSE)),
+         gdl = as.logical(ifelse(gdl >=0.5, TRUE, FALSE)),
+         perse = as.logical(ifelse(perse >=0.5, TRUE, FALSE)))
 ```
 
 ```{r rename columns}
 names(my_panel) <- c("year", "state", "seat_belt", "min_age", "zero_tolerance",
-                     "gradual_dl", "no_proof_guilt", 
-                     "total_fatal", "night_fatal", "weekend_fatal",
-                     "total_fatal_per_miles", "night_fatal_per_miles", "weekend_fatal_per_miles",
-                     "state_pop", 
-                     "total_fatal_per_pop", "night_fatal_per_pop", "weekend_fatal_per_pop",
-                     "tot_miles_driven", "unemployment", "percent_young", "speed_limit_above_70",
-                     "miles_per_capita", "dum_speed_limit", "dum_year", "dum_blood_alc")
+   "gradual_dl", "no_proof_guilt", 
+   "total_fatal", "night_fatal", "weekend_fatal",
+   "total_fatal_per_miles", "night_fatal_per_miles", "weekend_fatal_per_miles",
+   "state_pop", 
+   "total_fatal_per_pop", "night_fatal_per_pop", "weekend_fatal_per_pop",
+   "tot_miles_driven", "unemployment", "percent_young", "speed_limit_above_70",
+   "miles_per_capita", "dum_speed_limit", "dum_year", "dum_blood_alc")
 ```
+
+## Description of Dataset
+
+2. \textcolor{darkgray}{(5 points) Provide a description of the basic structure of the dataset. What is this data? How, where, and when is it collected? Is the data generated through a survey or some other method? Is the data that is presented a sample from the population, or is it a *census* that represents the entire population? Minimally, this should include:}
+    - \textcolor{darkgray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
+
+The data originates from the study by Freeman, D.G. (2007), “Drunk Driving Legislation and Traffic Fatalities: New Evidence on BAC 08 Laws” published in Contemporary Economic Policy 25, 293–308. Author of the study made the data publicly accessible. It appears to describe an entire population of the US, although the details of data collection are behind a pay wall. 
+
+This data set is organized as a long table, with a set of observations for each US state (except Alaska, Hawaii, District of Columbia that are missing) for each year from 1980 to 2004. The years are coded as a numeric values as well as categorical variables. For each state-year category there are observations related to the state's traffic laws, traffic fatalities, and population/driving statistics. The data is balanced.
+
+To make the data set suitable for our analysis, we applied a set of transformations (see above) and the rest of the description will discuss the transformed data set.
+
+Some of the variable that can only be binary (zero tollerance that can either be implemented or not) sometimes have fractional value. Presumably, that indicates the years when the variable changed its value. To simplify interpretations, we rounded these values to the nearest integer.
+
+### Traffic Laws and Drinking Regulations
+
+Speed limit is represented by two categorical variables:
+\begin{itemize}
+  \item Max speed limit in the state: $dum\_speed\_limit$ with categories $sl55$, $sl65$, $sl70$, $sl75$, $slnone$
+  \item Weather max speed limit in the state exceeds 70 mph: $speed\_limit\_above_70$
+\end{itemize}
+
+Seat belt rules are represented by a categorical variable `seat_belt` with categories "0" if there is no law, '1' if not wearing a seat belt is a sufficient reason for a ticket, "2" if seat belt ticket can only be issued in  conjunction with another violation.
+
+Drivers licencing process is represented by `gradual_dl` indicating if there is a step-wise process to obtaining a full licence.
+
+Drinking regulations are represented by the following variables:
+\begin{itemize}
+  \item $min\_age$ is a number representing the legal drinking age
+  \item $zero\_tolerance$ is a logical variable showing if zero alcohol tolerance is in force
+  \item $blood\_alc\_lmt$ is a categorical with three levels: `bac08` for 0.8\textperthousand\, `bac10` for 1.0\textperthousand\ and `none` for no upper limit.
+  \item $no_proof\_guilt$ is a logical variable that indicates if drivers licence can be suspended without positive medical proof of driving under influence.
+\end{itemize}
+
+### Fatalities
+
+Fatality is given as $total\_fatal$, total fatalities at this year and state and additional $night\_fatal$ and $weekend\_fatal$ variables giving tempral details. Data normalized by to 100,000 people and to 100 milion miles driven is also presented in two groups of three variable. 
+
+#### State demographics
+
+Additional information for each year and each state is presented in numeric variables:
+\begin{itemize}
+  \item $state_pop$ is the state population
+  \item $unemployment$ is the percent of unemployment
+  \item $percent\_young$ is the precent of poipulation 18 to 24 years old
+  \item $miles\_per\_capita$ is the number of miles driven per person
+\end{itemize}
+
+## EDA
+
+3. \textcolor{darkgray}{(20 points) Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable $total\_fatalities\_rate$ and the potential explanatory variables. Minimally, this should include:}
+    - \textcolor{darkgray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
+    - \textcolor{darkgray}{What is the average of $total\_fatalities\_rate$ in each of the years in the time period covered in this dataset?}
+
+\textcolor{darkgray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
+
+
+
 
 # (15 points) Preliminary Model
 
