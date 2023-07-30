@@ -90,13 +90,24 @@ my_panel <- cbind(my_panel[,1:25], my_panel[,51:53])
 
 ```
 
-```{r make bac variable}
+```{r make bac and seatbelt variables}
 my_panel <- my_panel %>%
   mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "bac10", 
                        ifelse(bac08 >=0.5, "bac08", "None"))) %>% 
-  select(-bac10, -bac08) %>% 
-  mutate(blood_alc_lmt = as.factor(blood_alc_lmt))
+  select(-bac10, -bac08, -sbprim, -sbsecon) %>% 
+  mutate(blood_alc_lmt = as.factor(blood_alc_lmt)) %>%
+  mutate(seatbelt = as.factor(seatbelt))
+```
 
+```{r rename columns}
+names(my_panel) <- c("year", "state", "seat_belt", "min_age", "zero_tolerance",
+                     "gradual_dl", "no_proof_guilt", 
+                     "total_fatal", "night_fatal", "weekend_fatal",
+                     "total_fatal_per_miles", "night_fatal_per_miles", "weekend_fatal_per_miles",
+                     "state_pop", 
+                     "total_fatal_per_pop", "night_fatal_per_pop", "weekend_fatal_per_pop",
+                     "tot_miles_driven", "unemployment", "percent_young", "speed_limit_above_70",
+                     "miles_per_capita", "dum_speed_limit", "dum_year", "dum_blood_alc")
 ```
 
 # (15 points) Preliminary Model
