@@ -25,6 +25,11 @@ if (!"car" %in% rownames(installed.packages())) {
 }
 library(car)
 theme_set(theme_minimal())
+
+## provides geoms for ggplot2 to repel overlapping text labels.
+library(ggrepel)
+library(stargazer)
+library(gridExtra)
 ```
 
 
@@ -94,15 +99,43 @@ my_panel <- my_panel %>%
          perse = as.logical(ifelse(perse >=0.5, TRUE, FALSE)))
 ```
 
+```{r Add state names}
+# Create vectors for US states and their abbreviations
+us_states <- c(
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+  "Colorado", "Connecticut", "Delaware", "District Columbia", "Florida", "Georgia",
+  "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+  "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+  "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
+  "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+  "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
+  "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+  "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")
+
+state_abbreviations <- c(
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY")
+
+# Create a dataframe with US states and their abbreviations
+us_states_df <- data.frame(State_name = us_states, Abbreviation = state_abbreviations, state = seq(1:51))
+# Merge the names to the main panel
+my_panel <- merge(my_panel, us_states_df, by.x = "state", by.y = "state", all.x = TRUE)
+```
+
 ```{r rename columns}
-names(my_panel) <- c("year", "state", "seat_belt", "min_age", "zero_tolerance",
+names(my_panel) <- c("state", "year", "seat_belt", "min_age", "zero_tolerance",
    "gradual_dl", "no_proof_guilt", 
    "total_fatal", "night_fatal", "weekend_fatal",
    "total_fatal_per_miles", "night_fatal_per_miles", "weekend_fatal_per_miles",
    "state_pop", 
    "total_fatal_per_pop", "night_fatal_per_pop", "weekend_fatal_per_pop",
    "tot_miles_driven", "unemployment", "percent_young", "speed_limit_above_70",
-   "miles_per_capita", "dum_speed_limit", "dum_year", "dum_blood_alc")
+   "miles_per_capita", "dum_speed_limit", "dum_year", "dum_blood_alc",
+   "state_name", "state_abbr")
 ```
 
 ## Description of Dataset
@@ -140,7 +173,7 @@ Drinking regulations are represented by the following variables:
 
 ### Fatalities
 
-Fatality is given as $total\_fatal$, total fatalities at this year and state and additional $night\_fatal$ and $weekend\_fatal$ variables giving tempral details. Data normalized by to 100,000 people and to 100 milion miles driven is also presented in two groups of three variable. 
+Fatality is given as $total\_fatal$, total fatalities at this year and state and additional $night\_fatal$ and $weekend\_fatal$ variables giving tempral details. Data normalized to 100,000 people and to 100 milion miles driven is also presented in two groups of three variable. 
 
 #### State demographics
 
@@ -160,8 +193,53 @@ Additional information for each year and each state is presented in numeric vari
 
 \textcolor{darkgray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
 
+```{r,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+p1 <- my_panel %>%
+  filter(state <= 12 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none")
 
+p2 <- my_panel %>%
+  filter(state > 12 & state <= 24 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none")
 
+p3<-my_panel %>%
+  filter(state > 24 & state <= 36 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none")
+
+p4<- my_panel %>%
+  filter(state > 36 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none")
+
+grid.arrange(p1,p2,p3,p4, nrow = 2, ncol = 2)
+```
+
+Plot of trafic fatalities per miles driven over state over time
+
+Plot seat_belt, 
+For select big states(TX, CA, NY, IL, FL) plot trafic fatalities vs 
+ - young population
+ - unemployment
+ - no_proof_guilt
+ - zero_tolerance
+ - speed_limit
+ 
+ 
 
 # (15 points) Preliminary Model
 
