@@ -198,7 +198,7 @@ p1 <- my_panel %>%
   filter(state <= 15 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
   theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
   theme_minimal()
@@ -207,7 +207,7 @@ p2 <- my_panel %>%
   filter(state > 15 & state <= 27 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
   theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
   theme_minimal()
@@ -216,7 +216,7 @@ p3<-my_panel %>%
   filter(state > 27 & state <= 39 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
   theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
   theme_minimal()
@@ -225,21 +225,23 @@ p4<- my_panel %>%
   filter(state > 39 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
   theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
   theme_minimal()
 
 grid.arrange(p1,p2,p3,p4, nrow = 2, ncol = 2)
 ```
+Plots above show how fatality per person changes over time for each state represented in the data set. There is a general downward trend that is particularly visible in case of the more populous states such as Texas, California and Florida. Only South Dakota is trending up consistently, but that might be a statistical artifact caused by small population. Some states, like Texas, Utah and Colorado, exhibit a very consistent downward trend, that would be hard to explain by the influence of any one-time decision. A large group of states (Oregon, Pennsylvania and Maryland, to name a few) exhibit strong increase in the fatality rate in the late 80's early 90's before sudden drop to almost modern levels. This patters would be consistent with the influence of some policy change that became popular in the late 80's.
+
 ```{r binary variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
-state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
+state_slice <- c('TX', 'CA', 'NY', 'MN', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
 
 speed_lim_plot <- my_panel %>%
   filter(state_abbr %in%  state_slice ) %>%
   ggplot(aes(x = dum_speed_limit, y = total_fatal_per_pop)) +
   geom_boxplot() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Speed Limit",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6))
 
@@ -247,7 +249,7 @@ no_proof_plot <- my_panel %>%
   filter(state_abbr %in% state_slice ) %>%
   ggplot(aes(x = no_proof_guilt, y = total_fatal_per_pop)) +
   geom_boxplot() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Need to prove guilt?",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6))   + scale_x_discrete(labels = c("FALSE" = "N", "TRUE" = "Y"))
 
@@ -255,7 +257,7 @@ seat_belt_plot <- my_panel %>%
   filter(state_abbr %in% state_slice ) %>%
   ggplot(aes(x = seat_belt, y = total_fatal_per_pop)) +
   geom_boxplot() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Click it or ticket?",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("0" = "N", "1" = "Y", "2" = "Mbe"))
 
@@ -263,12 +265,16 @@ alc_plot <- my_panel %>%
   filter(state_abbr %in% state_slice ) %>%
   ggplot(aes(x = dum_blood_alc, y = total_fatal_per_pop)) +
   geom_boxplot() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Drink and drive!",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6)) 
 
-(speed_lim_plot | no_proof_plot)/(seat_belt_plot|alc_plot)
+grid.arrange(speed_lim_plot,no_proof_plot,seat_belt_plot,alc_plot, nrow = 2, ncol = 2)
 ```
+Visualizing all 50 states would be visually overwhelming and for the next set of graphs we decided to use the most populous states and the states with the most interesting fatality-time patterns as representatives of the entire country. 
+
+The group of plots above show correlation of four policies on the road fatality rates: changes in speed limit, changes in seat belt laws, institution of no-proof guilt when it comes to DUI and blood alcohol limits. Unexpectedly, the speed limit seems to be inversely correlated with the fatality: the higher the limit the lower the fatality. This is likely the case of spurious correlation. More stringent seat belt laws are also related to the lower fatality rate more often than not. Introduction of $per\ se$ laws is also assotiated with the reduced fatality. Unsurprisingly, there is strong negative association between allowed alcohol concentration in the Having a mixture of expected and unexpected results, these plots are good reminders that correlation does not equal causation. 
+
 ```{r continous variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
 state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
 
@@ -276,7 +282,7 @@ unempl_plot <- my_panel %>%
   filter(state_abbr %in%  state_slice ) %>%
   ggplot(aes(x = unemployment, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Unemployment",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6))
 
@@ -284,30 +290,31 @@ young_plot <- my_panel %>%
   filter(state_abbr %in% state_slice ) %>%
   ggplot(aes(x = percent_young, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Percent 18 to 24",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6))
 
 driven_plot <- my_panel %>%
   filter(state_abbr %in% state_slice ) %>%
-  ggplot(aes(x = miles_per_capita, y = total_fatal_per_pop)) +
+  ggplot(aes(x = miles_per_capita/1000, y = total_fatal_per_pop)) +
   geom_line() +
-  facet_wrap(~ state_abbr, nrow = 3) +
-  labs(x = "Miles driven",  y = "Fatalities/100k people") +
-  theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("0" = "N", "1" = "Y", "2" = "Mbe"))
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "1000's of miles driven",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
 
 gradual_plot <- my_panel %>%
   filter(state_abbr %in% state_slice ) %>%
   ggplot(aes(x = gradual_dl, y = total_fatal_per_pop)) +
   geom_boxplot() +
-  facet_wrap(~ state_abbr, nrow = 3) +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
   labs(x = "Complex lincence?",  y = "Fatalities/100k people") +
   theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("FALSE" = "N", "TRUE" = "Y"))
 
-(unempl_plot | young_plot)/(driven_plot|gradual_plot)
+grid.arrange(unempl_plot, young_plot, driven_plot, nrow = 2, ncol = 2)
 ```
-- Graduated drivers licenses 
- 
+
+The graphs above demonstrate correlation of factors that are outside of the legislator's control and change gradually, the factors that could cause gradual change in the fatality that we observed above. Unemployment does not seem to have a clear correlation with the fatality, while percentage of the young population has clear positive correrlation. Given the car insurance rates for young driver, we suspect that this effect is well known in the insurance world. 
+Unexpectedly, the number of miles driven per person has negative correlation with the fatality: as the millage goes up the fatality goes down in most populous states. This effect is hard to rationalize and we expect to shed some lite on it with more sophisticated analysis. 
  
 
 # (15 points) Preliminary Model
