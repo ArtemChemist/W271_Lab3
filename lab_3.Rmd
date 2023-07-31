@@ -62,11 +62,11 @@ load(file="./data/driving.RData")
 
 ```{r make speed_limit variable}
 my_panel <- data %>%
-  mutate(speed_limit = ifelse(sl55 >=0.5, "sl55", 
-                     ifelse(sl65 >=0.5, "sl65", 
-                     ifelse(sl70 >=0.5, "sl70", 
-                     ifelse(sl75 >=0.5, "sl75", 
-                     ifelse(slnone >=0.5, "slnone", "None")))))) %>% 
+  mutate(speed_limit = ifelse(sl55 >=0.5, "55", 
+                     ifelse(sl65 >=0.5, "65", 
+                     ifelse(sl70 >=0.5, "70", 
+                     ifelse(sl75 >=0.5, "75", 
+                     ifelse(slnone >=0.5, "nolim", "NAN")))))) %>% 
   select(-sl55, -sl65, -sl70, -sl75, -slnone) %>% # Drop unused columns
   mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
 
@@ -89,14 +89,14 @@ my_panel <- cbind(my_panel[,1:25], my_panel[,51:53])
 
 ```{r make bac and seatbelt variables}
 my_panel <- my_panel %>%
-  mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "bac10", 
-                       ifelse(bac08 >=0.5, "bac08", "None"))) %>% 
+  mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "1.0", 
+                       ifelse(bac08 >=0.5, "0.8", "None"))) %>% 
   select(-bac10, -bac08, -sbprim, -sbsecon) %>% 
   mutate(blood_alc_lmt = as.factor(blood_alc_lmt),
          seatbelt = as.factor(seatbelt),
-         zerotol = as.logical(ifelse(zerotol >=0.5, TRUE, FALSE)),
-         gdl = as.logical(ifelse(gdl >=0.5, TRUE, FALSE)),
-         perse = as.logical(ifelse(perse >=0.5, TRUE, FALSE)))
+         zerotol = as.logical(ifelse(zerotol >=0.5, T, F)),
+         gdl = as.logical(ifelse(gdl >=0.5, T, F)),
+         perse = as.logical(ifelse(perse >=0.5, T, F)))
 ```
 
 ```{r Add state names}
@@ -193,51 +193,120 @@ Additional information for each year and each state is presented in numeric vari
 
 \textcolor{darkgray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
 
-```{r,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+```{r main plots,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
 p1 <- my_panel %>%
-  filter(state <= 12 ) %>%
+  filter(state <= 15 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
   facet_wrap(~ state_abbr, nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
 
 p2 <- my_panel %>%
-  filter(state > 12 & state <= 24 ) %>%
+  filter(state > 15 & state <= 27 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
   facet_wrap(~ state_abbr, nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
 
 p3<-my_panel %>%
-  filter(state > 24 & state <= 36 ) %>%
+  filter(state > 27 & state <= 39 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
   facet_wrap(~ state_abbr, nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
 
 p4<- my_panel %>%
-  filter(state > 36 ) %>%
+  filter(state > 39 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
   facet_wrap(~ state_abbr, nrow = 3) +
   labs(x = "Year",  y = "Fatalities/100k people") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
 
 grid.arrange(p1,p2,p3,p4, nrow = 2, ncol = 2)
 ```
+```{r binary variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
 
-Plot of trafic fatalities per miles driven over state over time
+speed_lim_plot <- my_panel %>%
+  filter(state_abbr %in%  state_slice ) %>%
+  ggplot(aes(x = dum_speed_limit, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Speed Limit",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
 
-Plot seat_belt, 
-For select big states(TX, CA, NY, IL, FL) plot trafic fatalities vs 
- - young population
- - unemployment
- - no_proof_guilt
- - zero_tolerance
- - speed_limit
+no_proof_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = no_proof_guilt, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Need to prove guilt?",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))   + scale_x_discrete(labels = c("FALSE" = "N", "TRUE" = "Y"))
+
+seat_belt_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = seat_belt, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Click it or ticket?",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("0" = "N", "1" = "Y", "2" = "Mbe"))
+
+alc_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = dum_blood_alc, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Drink and drive!",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6)) 
+
+(speed_lim_plot | no_proof_plot)/(seat_belt_plot|alc_plot)
+```
+```{r continous variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
+
+unempl_plot <- my_panel %>%
+  filter(state_abbr %in%  state_slice ) %>%
+  ggplot(aes(x = unemployment, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Unemployment",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
+
+young_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = percent_young, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Percent 18 to 24",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
+
+driven_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = miles_per_capita, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Miles driven",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("0" = "N", "1" = "Y", "2" = "Mbe"))
+
+gradual_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = gradual_dl, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, nrow = 3) +
+  labs(x = "Complex lincence?",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("FALSE" = "N", "TRUE" = "Y"))
+
+(unempl_plot | young_plot)/(driven_plot|gradual_plot)
+```
+- Graduated drivers licenses 
  
  
 
