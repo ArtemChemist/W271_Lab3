@@ -320,37 +320,41 @@ grid.arrange(unempl_plot, young_plot, driven_plot, nrow = 2, ncol = 2)
 ```
 
 The graphs above demonstrate correlation of factors that are outside of the legislator's control and change gradually, the factors that could cause gradual change in the fatality that we observed above. Unemployment does not seem to have a clear correlation with the fatality, while percentage of the young population has clear positive correrlation. Given the car insurance rates for young driver, we suspect that this effect is well known in the insurance world. 
-Unexpectedly, the number of miles driven per person has negative correlation with the fatality: as the millage goes up the fatality goes down in most populous states. This effect is hard to rationalize and we expect to shed some lite on it with more sophisticated analysis. 
+Unexpectedly, the number of miles driven per person has negative correlation with the fatality: as the millage goes up the fatality goes down in most populous states. This effect is hard to rationalize and we expect to shed some light on it with more sophisticated analysis. 
  
 
 # (15 points) Preliminary Model
 
-\textcolor{darkgray}{Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004 and interpret what you observe. In this section, you should address the following tasks:}
+\textcolor{gray}{Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004 and interpret what you observe. In this section, you should address the following tasks:}
 
-- \textcolor{darkgray}{Why is fitting a linear model a sensible starting place?}
-- \textcolor{darkgray}{What does this model explain, and what do you find in this model?}
-- \textcolor{darkgray}{Did driving become safer over this period? Please provide a detailed explanation.}
-- \textcolor{darkgray}{What, if any, are the limitation of this model. In answering this, please consider **at least**:}
-    - \textcolor{darkgray}{Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?}
-    - \textcolor{darkgray}{Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?}
+- \textcolor{gray}{Why is fitting a linear model a sensible starting place?}
+- \textcolor{gray}{What does this model explain, and what do you find in this model?}
+- \textcolor{gray}{Did driving become safer over this period? Please provide a detailed explanation.}
+- \textcolor{gray}{What, if any, are the limitation of this model. In answering this, please consider **at least**:}
+    - \textcolor{gray}{Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?}
+    - \textcolor{gray}{Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?}
     
 ```{r linear regression model}
 lsdv_model <- plm(total_fatal_per_pop ~ dum_year, data = my_panel, 
-                      index = c("state_abbr", "year"), 
                       effect = "individual", model = "pooling")
-summary(lsdv_model)
+# summary(lsdv_model)
 
-
-ggplot(data = broom::augment(lsdv_model), aes(x = as.numeric(dum_year), y = .fitted)) +
-  geom_point(aes(color = "state_abbr")) +
-  geom_line(aes(color = "state_abbr")) +
-  labs(x = "Year", y = "Fitted Values (fatal_rate ~ year)",
+ggplot(data = broom::augment(lsdv_model), aes(x = 1979+as.numeric(dum_year), y = .fitted)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Year", y = "Fitted Fatalities, per 100k population ",
        color = "state") +
   theme(legend.position = "none")
 ```
-- Why is fitting a linear model a sensible starting place? 
-- What does this model explain, and what do you find in this model? 
-- Did driving become safer over this period? Please provide a detailed explanation.
+Fitting a linear model might be a good first step, becasue most of the assumptions of a linear regression are satisfied:
+\begin{enumerate}
+  \item Linearity: each dummy variable has only two levels, therefore model is guaranteed linear
+  \item I.I.D. : Fatality rate is reasonably independent across states
+  \item No perfect colinearity in the data
+  \item No obvious correlation between the error term and individual-specific effects
+\end{enumerate}
+
+This model shows how much safer driving becomes for each year, as compared to 1980. All coefficients are statistically significant and negative, showing that driving in 1980 was the most dangerous of all years in observation. Generally, fitted fatality rate decreases, with a slight increase in the late 80s. Driving, on average became safer in this period.
 - What, if any, are the limitation of this model. In answering this, please consider **at least**: 
     - Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?
     - Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?
