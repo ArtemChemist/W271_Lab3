@@ -30,6 +30,9 @@ theme_set(theme_minimal())
 library(ggrepel)
 library(stargazer)
 library(gridExtra)
+
+# Provide a set of estimators for models and (robust) covariance matrices and tests for panel data econometrics, 
+library(plm)
 ```
 
 
@@ -78,11 +81,14 @@ result_vector <- character(nrow(my_panel))
 year_names <- names(my_panel[,26:50])
 # Loop through each row and find the non-zero column name (if any)
 for (i in 1:nrow(my_panel)) {
-  result_vector[i] <- year_names[my_panel[i,26:50] != 0]
+  year_level <-  sub(".", "", year_names[my_panel[i,26:50] != 0])
+  year_level <- paste(ifelse(as.numeric(year_level) < 80, "20", "19"), year_level, sep = "")
+  result_vector[i] <- year_level
 }
 # Add the new column to the dataframe
-my_panel$year_of_observation <- as.factor(result_vector)
-# Drop unnneded columns
+
+my_panel$year_of_observation <- relevel(as.factor(result_vector), ref = "1980")
+# Drop unneeded columns
 my_panel <- cbind(my_panel[,1:25], my_panel[,51:53])
 
 ```
@@ -319,14 +325,35 @@ Unexpectedly, the number of miles driven per person has negative correlation wit
 
 # (15 points) Preliminary Model
 
-Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004 and interpret what you observe. In this section, you should address the following tasks: 
+\textcolor{darkgray}{Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004 and interpret what you observe. In this section, you should address the following tasks:}
 
+- \textcolor{darkgray}{Why is fitting a linear model a sensible starting place?}
+- \textcolor{darkgray}{What does this model explain, and what do you find in this model?}
+- \textcolor{darkgray}{Did driving become safer over this period? Please provide a detailed explanation.}
+- \textcolor{darkgray}{What, if any, are the limitation of this model. In answering this, please consider **at least**:}
+    - \textcolor{darkgray}{Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?}
+    - \textcolor{darkgray}{Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?}
+    
+```{r linear regression model}
+lsdv_model <- plm(total_fatal_per_pop ~ dum_year, data = my_panel, 
+                      index = c("state_abbr", "year"), 
+                      effect = "individual", model = "pooling")
+summary(lsdv_model)
+
+
+ggplot(data = broom::augment(lsdv_model), aes(x = as.numeric(dum_year), y = .fitted)) +
+  geom_point(aes(color = "state_abbr")) +
+  geom_line(aes(color = "state_abbr")) +
+  labs(x = "Year", y = "Fitted Values (fatal_rate ~ year)",
+       color = "state") +
+  theme(legend.position = "none")
+```
 - Why is fitting a linear model a sensible starting place? 
 - What does this model explain, and what do you find in this model? 
 - Did driving become safer over this period? Please provide a detailed explanation.
 - What, if any, are the limitation of this model. In answering this, please consider **at least**: 
     - Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?
-    - Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured? 
+    - Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?
 
 # (15 points) Expanded Model 
 
