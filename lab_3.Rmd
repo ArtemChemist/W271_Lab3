@@ -5,7 +5,7 @@ output:
   bookdown::pdf_document2: default
 ---
 
-```{r load packages, echo=FALSE, message=FALSE}
+```{r load packages, echo=FALSE, message=FALSE, warning = FALSE}
 library(tidyverse)
 library(tsibble)
 library(latex2exp)
@@ -38,13 +38,13 @@ library(plm)
 
 # U.S. traffic fatalities: 1980-2004
 
-\textcolor{darkgray}{In this lab, we are asking you to answer the following **causal** question:}
+\textcolor{gray}{In this lab, we are asking you to answer the following **causal** question:}
 
 > **"Do changes in traffic laws affect traffic fatalities?"**  
 
-\textcolor{darkgray}{To answer this question, please complete the tasks specified below using the data provided in `data/driving.Rdata`. This data includes 25 years of data that cover changes in various state drunk driving, seat belt, and speed limit laws.}
+\textcolor{gray}{To answer this question, please complete the tasks specified below using the data provided in `data/driving.Rdata`. This data includes 25 years of data that cover changes in various state drunk driving, seat belt, and speed limit laws.}
 
-\textcolor{darkgray}{Specifically, this data set contains data for the 48 continental U.S. states from 1980 through 2004. Various driving laws are indicated in the data set, such as the alcohol level at which drivers are considered legally intoxicated. There are also indicators for “per se” laws—where licenses can be revoked without a trial—and seat belt laws. A few economics and demographic variables are also included. The description of the each of the variables in the dataset is also provided in the dataset.}
+\textcolor{gray}{Specifically, this data set contains data for the 48 continental U.S. states from 1980 through 2004. Various driving laws are indicated in the data set, such as the alcohol level at which drivers are considered legally intoxicated. There are also indicators for “per se” laws—where licenses can be revoked without a trial—and seat belt laws. A few economics and demographic variables are also included. The description of the each of the variables in the dataset is also provided in the dataset.}
 
 ```{r load data, echo = FALSE}
 load(file="./data/driving.RData")
@@ -57,11 +57,11 @@ load(file="./data/driving.RData")
 
 # (30 points, total) Build and Describe the Data 
 
-1. \textcolor{darkgray}{(5 points) Load the data and produce useful features. Specifically:}
-    - \textcolor{darkgray}{Produce a new variable, called $speed_limit$ that re-encodes the data that is in $sl55$, $sl65$, $sl70$, $sl75$, and $slnone$;}
-    - \textcolor{darkgray}{Produce a new variable, called $year\_of\_observation$ that re-encodes the data that is in $d80$, $d81$, ... , $d04$.}
-    - \textcolor{darkgray}{Produce a new variable for each of the other variables that are one-hot encoded (i.e. $bac*$ variable series).} 
-    - \textcolor{darkgray}{Rename these variables to sensible names that are legible to a reader of your analysis. For example, the dependent variable as provided is called, $totfatrte$. Pick something more sensible, like, $total_fatalities_rate$. There are few enough of these variables to change, that you should change them for all the variables in the data. (You will thank yourself later.)}
+1. \textcolor{gray}{(5 points) Load the data and produce useful features. Specifically:}
+    - \textcolor{gray}{Produce a new variable, called $speed_limit$ that re-encodes the data that is in $sl55$, $sl65$, $sl70$, $sl75$, and $slnone$;}
+    - \textcolor{gray}{Produce a new variable, called $year\_of\_observation$ that re-encodes the data that is in $d80$, $d81$, ... , $d04$.}
+    - \textcolor{gray}{Produce a new variable for each of the other variables that are one-hot encoded (i.e. $bac*$ variable series).} 
+    - \textcolor{gray}{Rename these variables to sensible names that are legible to a reader of your analysis. For example, the dependent variable as provided is called, $totfatrte$. Pick something more sensible, like, $total_fatalities_rate$. There are few enough of these variables to change, that you should change them for all the variables in the data. (You will thank yourself later.)}
 
 ```{r make speed_limit variable}
 my_panel <- data %>%
@@ -146,8 +146,8 @@ names(my_panel) <- c("state", "year", "seat_belt", "min_age", "zero_tolerance",
 
 ## Description of Dataset
 
-2. \textcolor{darkgray}{(5 points) Provide a description of the basic structure of the dataset. What is this data? How, where, and when is it collected? Is the data generated through a survey or some other method? Is the data that is presented a sample from the population, or is it a *census* that represents the entire population? Minimally, this should include:}
-    - \textcolor{darkgray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
+2. \textcolor{gray}{(5 points) Provide a description of the basic structure of the dataset. What is this data? How, where, and when is it collected? Is the data generated through a survey or some other method? Is the data that is presented a sample from the population, or is it a *census* that represents the entire population? Minimally, this should include:}
+    - \textcolor{gray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
 
 The data originates from the study by Freeman, D.G. (2007), “Drunk Driving Legislation and Traffic Fatalities: New Evidence on BAC 08 Laws” published in Contemporary Economic Policy 25, 293–308. Author of the study made the data publicly accessible. It appears to describe an entire population of the US, although the details of data collection are behind a pay wall. 
 
@@ -193,11 +193,11 @@ Additional information for each year and each state is presented in numeric vari
 
 ## EDA
 
-3. \textcolor{darkgray}{(20 points) Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable $total\_fatalities\_rate$ and the potential explanatory variables. Minimally, this should include:}
-    - \textcolor{darkgray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
-    - \textcolor{darkgray}{What is the average of $total\_fatalities\_rate$ in each of the years in the time period covered in this dataset?}
+3. \textcolor{gray}{(20 points) Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable $total\_fatalities\_rate$ and the potential explanatory variables. Minimally, this should include:}
+    - \textcolor{gray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
+    - \textcolor{gray}{What is the average of $total\_fatalities\_rate$ in each of the years in the time period covered in this dataset?}
 
-\textcolor{darkgray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
+\textcolor{gray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
 
 ```{r main plots,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
 p1 <- my_panel %>%
@@ -339,11 +339,12 @@ lsdv_model <- plm(total_fatal_per_pop ~ dum_year, data = my_panel,
                       effect = "individual", model = "pooling")
 # summary(lsdv_model)
 
+av_fat <- my_panel %>% group_by(year) %>% summarise(mean_fat = mean(total_fatal_per_pop))
+
 ggplot(data = broom::augment(lsdv_model), aes(x = 1979+as.numeric(dum_year), y = .fitted)) +
-  geom_point() +
   geom_line() +
-  labs(x = "Year", y = "Fitted Fatalities, per 100k population ",
-       color = "state") +
+  geom_point(aes(x = year, y = mean_fat), color = "red", data = av_fat) +
+  labs(x = "Year", y = "Fitted Fatalities, per 100k population ") +
   theme(legend.position = "none")
 ```
 Fitting a linear model might be a good first step, becasue most of the assumptions of a linear regression are satisfied:
@@ -354,30 +355,103 @@ Fitting a linear model might be a good first step, becasue most of the assumptio
   \item No obvious correlation between the error term and individual-specific effects
 \end{enumerate}
 
-This model shows how much safer driving becomes for each year, as compared to 1980. All coefficients are statistically significant and negative, showing that driving in 1980 was the most dangerous of all years in observation. Generally, fitted fatality rate decreases, with a slight increase in the late 80s. Driving, on average became safer in this period.
-- What, if any, are the limitation of this model. In answering this, please consider **at least**: 
-    - Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?
-    - Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?
+ \textcolor{red}{This model shows how much safer driving becomes for each year, as compared to 1980. All coefficients are statistically significant and negative, showing that driving in 1980 was the most dangerous of all years in observation. Generally, fitted fatality rate decreases, with a slight increase in the late 80s. Driving, on average became safer in this period.
+Because the data set is a complete census of the population, and the model is descriptive, there is no uncertainty associated with these estimates. These conclusions are purely descriptive, the errors can be calculated down to a single fatality. So, while linear models of this kind do suffer from bias int eh estimation of the coefficients, because of the potential correlation between state-level unobserved effects and the error terms, this would only matter if the data was a sample of the population.}
 
 # (15 points) Expanded Model 
 
-Expand the **Preliminary Model** by adding variables related to the following concepts: 
+ \textcolor{gray}{Expand the $Preliminary Model$ by adding variables related to the following concepts:} 
 
-- Blood alcohol levels 
-- Per se laws
-- Primary seat belt laws (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)
-- Secondary seat belt laws 
-- Speed limits faster than 70 
-- Graduated drivers licenses 
-- Percent of the population between 14 and 24 years old
-- Unemployment rate
-- Vehicle miles driven per capita. 
+-  \textcolor{gray}{Blood alcohol levels} 
+-  \textcolor{gray}{Per se laws}
+-  \textcolor{gray}{Primary seat belt laws (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)}
+-  \textcolor{gray}{Secondary seat belt laws} 
+-  \textcolor{gray}{Speed limits faster than 70} 
+-  \textcolor{gray}{Graduated drivers licenses} 
+-  \textcolor{gray}{Percent of the population between 14 and 24 years old}
+-  \textcolor{gray}{Unemployment rate}
+-  \textcolor{gray}{Vehicle miles driven per capita. }
 
-If it is appropriate, include transformations of these variables. Please carefully explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. 
+ \textcolor{gray}{If it is appropriate, include transformations of these variables. Please carefully explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed.} 
 
-- How are the blood alcohol variables defined? Interpret the coefficients that you estimate for this concept. 
-- Do *per se laws* have a negative effect on the fatality rate? 
-- Does having a primary seat belt law? 
+-  \textcolor{gray}{How are the blood alcohol variables defined? Interpret the coefficients that you estimate for this concept.} 
+-  \textcolor{gray}{Do $per se laws$ have a negative effect on the fatality rate? }
+-  \textcolor{gray}{Does having a primary seat belt law?}
+
+```{r expanded linear regression}
+lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year + 
+                                        dum_blood_alc +
+                                        no_proof_guilt +
+                           seat_belt +
+                           speed_limit_above_70 +
+                           gradual_dl +
+                           percent_young +
+                           unemployment +
+                           miles_per_capita,
+                      data = my_panel, 
+                      effect = "individual", model = "pooling")
+summary(lsdv_model_expand)
+```
+
+```{r exploratory}
+av_explore <- my_panel %>% group_by(year) %>% summarise(mean_fat = mean(total_fatal_per_pop),
+                                                        pop = sum(state_pop),
+                                                        unempl = sum(unemployment * state_pop)/pop,
+                                                        miles = sum(tot_miles_driven*1000000000)/pop,
+                                                        pop_08 = sum(state_pop * ifelse(dum_blood_alc == "0.8", 1, 0))/pop,
+                                                        pop_1 = sum(state_pop * ifelse(dum_blood_alc == "1.0", 1, 0))/pop,
+                                                        pop_non = sum(state_pop * ifelse(dum_blood_alc == "None", 1, 0))/pop,
+                                                        pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
+                                                        pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
+                                                        pop_70 = sum(state_pop * speed_limit_above_70)/pop)
+
+mean_fat_plot <- ggplot(data = av_explore) + aes(x = year, y = mean_fat) +
+  geom_line(color = "red") +
+  labs(x = "Year", y = "Mean fatalities") +
+  theme(legend.position = "none")
+  
+mean_unempl_plot <- ggplot(data = av_explore) + aes(x = year, y = unempl) + 
+  geom_line(color = "blue") +
+  labs(x = "Year", y = "Mean unemployment") +
+  theme(legend.position = "none")
+  
+tot_miles_plot <- ggplot(data = av_explore) + aes(x = year, y = miles) + 
+  geom_line(color = "darkgreen") +
+  labs(x = "Year", y = "Miles per capita") +
+  theme(legend.position = "none")
+
+pop08_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_08) + 
+  geom_line(color = "gray") +
+  labs(x = "Year", y = "bac 0.8") +
+  theme(legend.position = "none")
+
+pop1_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_1) + 
+  geom_line(color = "gray") +
+  labs(x = "Year", y = "bac 1.0") +
+  theme(legend.position = "none")
+
+popNon_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_non) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "no bac limit") +
+  theme(legend.position = "none")
+
+pop55_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_55) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL 55") +
+  theme(legend.position = "none")
+
+pop65_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_65) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL65") +
+  theme(legend.position = "none")
+
+pop70_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_70) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL 70+") +
+  theme(legend.position = "none")
+
+(mean_fat_plot|mean_unempl_plot|tot_miles_plot)/(pop08_plot|pop1_plot|popNon_plot)/(pop55_plot|pop65_plot|pop70_plot)
+```
 
 # (15 points) State-Level Fixed Effects 
 
