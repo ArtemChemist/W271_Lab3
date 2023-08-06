@@ -72,7 +72,7 @@ my_panel <- data %>%
                      ifelse(slnone >=0.5, "nolim", "NAN")))))) %>% 
   select(-sl55, -sl65, -sl70, -sl75, -slnone) %>% # Drop unused columns
   mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
-
+my_panel
 ```
 
 ```{r make year_of_observation variable}
@@ -130,6 +130,7 @@ state_abbreviations <- c(
 us_states_df <- data.frame(State_name = us_states, Abbreviation = state_abbreviations, state = seq(1:51))
 # Merge the names to the main panel
 my_panel <- merge(my_panel, us_states_df, by.x = "state", by.y = "state", all.x = TRUE)
+my_panel
 ```
 
 ```{r rename columns}
@@ -465,7 +466,21 @@ Which set of estimates do you think is more reliable? Why do you think this?
 
 - What assumptions are needed in each of these models?  
 - Are these assumptions reasonable in the current context?
+```{r}
+fixed_effects = plm(total_fatal_per_pop ~ dum_year + 
+                           dum_blood_alc +
+                           no_proof_guilt +
+                           seat_belt +
+                           speed_limit_above_70 +
+                           gradual_dl +
+                           percent_young +
+                           unemployment +
+                           miles_per_capita,
+                      data = my_panel, 
+                      effect = "individual", model = "within")
+summary(fixed_effects)
 
+```
 # (10 points) Consider a Random Effects Model 
 
 Instead of estimating a fixed effects model, should you have estimated a random effects model?
@@ -478,14 +493,135 @@ Instead of estimating a fixed effects model, should you have estimated a random 
 
 The COVID-19 pandemic dramatically changed patterns of driving. Find data (and include this data in your analysis, here) that includes some measure of vehicle miles driven in the US. Your data should at least cover the period from January 2018 to as current as possible. With this data, produce the following statements: 
 
+
+The data I am using is the Vehicle Miles Traveled dataset from Fred. The unit is in millions of miles.
+The dataset includes the monthly vehicle miles traveled from 2012 to 2023. For this experiment, I am only using the data from 2018 to 2023.
+Source: https://fred.stlouisfed.org/series/TRFVOLUSM227SFWA
+
+```{r}
+df = read.csv("travel_data.csv")
+df
+df = df[211:281,]
+colnames(df)[1] = "date"
+colnames(df)[2] = "miles"
+summary(df$miles)
+travel_plot <- ggplot(df,aes(x = df$date, y = df$miles))+geom_point()+ggtitle("Plot of Mileage by Month from 2017 to 2023")+xlab("Month")+ylab("Miles")+geom_line(color="green")
+
+travel_plot
+
+```
+After doing a quick check, we see no anomaly in the data. The monthly miles ranges from 167174 (during covid) to 285452. The monthly plot shows a similar picture.
+
+```{r}
+jan_2018 = df[df$date == "2018-01-01",]$miles
+feb_2018 = df[df$date == "2018-02-01",]$miles
+mar_2018 = df[df$date == "2018-03-01",]$miles
+apr_2018 = df[df$date == "2018-04-01",]$miles
+may_2018 = df[df$date == "2018-05-01",]$miles
+jun_2018 = df[df$date == "2018-06-01",]$miles
+jul_2018 = df[df$date == "2018-07-01",]$miles
+aug_2018 = df[df$date == "2018-08-01",]$miles
+sep_2018 = df[df$date == "2018-09-01",]$miles
+oct_2018 = df[df$date == "2018-10-01",]$miles
+nov_2018 = df[df$date == "2018-11-01",]$miles
+dec_2018 = df[df$date == "2018-12-01",]$miles
+
+jan_2020 = df[df$date == "2020-01-01",]$miles
+feb_2020 = df[df$date == "2020-02-01",]$miles
+mar_2020 = df[df$date == "2020-03-01",]$miles
+apr_2020 = df[df$date == "2020-04-01",]$miles
+may_2020 = df[df$date == "2020-05-01",]$miles
+jun_2020 = df[df$date == "2020-06-01",]$miles
+jul_2020 = df[df$date == "2020-07-01",]$miles
+aug_2020 = df[df$date == "2020-08-01",]$miles
+sep_2020 = df[df$date == "2020-09-01",]$miles
+oct_2020 = df[df$date == "2020-10-01",]$miles
+nov_2020 = df[df$date == "2020-11-01",]$miles
+dec_2020 = df[df$date == "2020-12-01",]$miles
+jan_2021 = df[df$date == "2021-01-01",]$miles
+
+
+jan_diff = jan_2020 - jan_2018
+feb_diff = feb_2020 - feb_2018
+mar_diff = mar_2020 - mar_2018
+apr_diff = apr_2020 - apr_2018
+may_diff = may_2020 - may_2018
+jun_diff = jun_2020 - jun_2018
+jul_diff = jul_2020 - jul_2018
+aug_diff = aug_2020 - aug_2018
+sep_diff = sep_2020 - sep_2018
+oct_diff = oct_2020 - oct_2018
+nov_diff = nov_2020 - nov_2018
+dec_diff = dec_2020 - dec_2018
+
+```
+```{r}
+
+month = c(1:12)
+diff = c(jan_diff,feb_diff,mar_diff,apr_diff,may_diff,jun_diff,jul_diff,aug_diff,sep_diff,oct_diff,nov_diff,dec_diff)
+
+diff_df = data.frame(month,diff)
+diff_df
+ggplot(diff_df,aes(x = month, y = diff))+geom_point()+ggtitle("Plot of Mileage Difference by Month Between 2018 and 2020")+xlab("Month")+ylab("Difference in Miles")
+```
 - Comparing monthly miles driven in 2018 to the same months during the pandemic: 
-  - What month demonstrated the largest decrease in driving? How much, in percentage terms, lower was this driving? 
-  - What month demonstrated the largest increase in driving? How much, in percentage terms, higher was this driving? 
+
+### Raw Data
+
+```{r}
+apr_2020
+apr_2018
+apr_2020 - apr_2018
+apr_2020 / apr_2018 - 1
+
+jan_2020
+jan_2018
+jan_2020 - jan_2018
+jan_2020 / jan_2018 - 1
+```
+###Normalizated to per 100000 capita: The population in 2018 was 326.8 million. The population in 2020 was 329.5 million.
+```{r}
+apr_2020
+apr_2020/329.5
+apr_2018
+apr_2018/326.8
+apr_2020/329.5 - apr_2018/326.8
+0.00093498*(apr_2020/329.5 - apr_2018/326.8)*100000
+(apr_2020/329.5 - apr_2018/326.8)/(apr_2018/326.8)
+```
+```{r}
+jan_2020
+jan_2020/329.5
+jan_2018
+jan_2018/326.8
+jan_2020/329.5-jan_2018/326.8
+
+0.00093498*(jan_2020/329.5-jan_2018/326.8)*100000
+(jan_2020/329.5-jan_2018/326.8)/(jan_2018/326.8)
+```
+```{r}
+summary(my_panel$total_fatal_per_pop)
+
+```
+  The month of April 2020 demonstrated the largest decrease in driving, from 273320 in April 2018 to 167174 in April 2020. This was a 38.8% decrease.
+  The month of January 2020 demonstrated the largest increase in driving, from 268361 in January 2018 to 285462 in January 2020. This was a 6.4% increase.
+
+  If we normalize our results to per 100000 capita:
+  The month of April 2020 demonstrated the largest decrease in miles per capita, from 836.35 in April 2018 to 507.36 in April 2020. This was a 39.3% decrease.
+  The month of January 2020 demonstrated the largest increase in miles per capita, from 821.18 in January 2018 to 866.32 in January 2020. This was a 5.5% increase.
+  
+  
   
 Now, use these changes in driving to make forecasts from your models. 
 
 - Suppose that the number of miles driven per capita, increased by as much as the COVID boom. Using the FE estimates, what would the consequences be on the number of traffic fatalities? Please interpret the estimate.
+
+The fixed effect model in part 6 shows that the slope of the variable "miles driven per capita" is 0.00093498 with a statistically significantly p-value. If the number of miles driven per capita were to increase by as much as 45.14, the difference between January 2018 and January 2020, the model predicts that the number of traffic fatalities would increase by about 4220 per 100000 capita.
+
 - Suppose that the number of miles driven per capita, decreased by as much as the COVID bust. Using the FE estimates, what would the consequences be on the number of traffic fatalities? Please interpret the estimate.
+
+The fixed effect model in part 6 shows that the slope of the variable "miles driven per capita" is 0.00093498 with a statistically significantly p-value. If the number of miles driven per capita were to decrease by as much as 329, the difference between April 2018 and April 2020, the model predicts that the number of traffic fatalities would decrease by about 30760 per 100000 capita.
+
 
 # (5 points) Evaluate Error 
 
