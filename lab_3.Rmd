@@ -5,13 +5,9 @@ output:
   bookdown::pdf_document2: default
 ---
 
-```{r}
-#install.packages("tidyverse")
-```
-
-
 ```{r load packages, echo=FALSE, message=FALSE, warning = FALSE}
 library(tsibble)
+library(tidyverse)
 library(latex2exp)
 library(dplyr)
 library(magrittr)
@@ -52,10 +48,6 @@ library(plm)
 
 ```{r load data, echo = FALSE}
 load(file="./data/driving.RData")
-
-## please comment these calls in your work 
-# glimpse(data)
-# desc
 ```
 
 
@@ -76,7 +68,6 @@ my_panel <- data %>%
                      ifelse(slnone >=0.5, "nolim", "NAN")))))) %>% 
   select(-sl55, -sl65, -sl70, -sl75, -slnone) %>% # Drop unused columns
   mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
-my_panel
 ```
 
 ```{r make year_of_observation variable}
@@ -134,7 +125,6 @@ state_abbreviations <- c(
 us_states_df <- data.frame(State_name = us_states, Abbreviation = state_abbreviations, state = seq(1:51))
 # Merge the names to the main panel
 my_panel <- merge(my_panel, us_states_df, by.x = "state", by.y = "state", all.x = TRUE)
-my_panel
 ```
 
 ```{r rename columns}
@@ -204,7 +194,7 @@ Additional information for each year and each state is presented in numeric vari
 
 \textcolor{gray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
 
-```{r main plots,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+```{r main plots,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12, echo=FALSE}
 p1 <- my_panel %>%
   filter(state <= 15 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
@@ -411,7 +401,9 @@ av_explore <- my_panel %>%
                        pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
                        pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
                        pop_70 = sum(state_pop * speed_limit_above_70)/pop)
+```
 
+```{r plot additional EDA plots, echo=FALSE}
 mean_fat_plot <- ggplot(data = av_explore) + aes(x = year, y = mean_fat) +
   geom_line(color = "red") +
   labs(x = "Year", y = "Mean fatalities") +
@@ -560,9 +552,8 @@ The data I am using is the Vehicle Miles Traveled dataset from Fred. The unit is
 The dataset includes the monthly vehicle miles traveled from 2012 to 2023. For this experiment, I am only using the data from 2018 to 2023.
 Source: https://fred.stlouisfed.org/series/TRFVOLUSM227SFWA
 
-```{r}
+```{r read travel data}
 df = read.csv("travel_data.csv")
-df
 df = df[211:281,]
 colnames(df)[1] = "date"
 colnames(df)[2] = "miles"
@@ -570,7 +561,6 @@ summary(df$miles)
 travel_plot <- ggplot(df,aes(x = df$date, y = df$miles))+geom_point()+ggtitle("Plot of Mileage by Month from 2017 to 2023")+xlab("Month")+ylab("Miles")+geom_line(color="green")
 
 travel_plot
-
 ```
 After doing a quick check, we see no anomaly in the data. The monthly miles ranges from 167174 (during covid) to 285452. The monthly plot shows a similar picture.
 
@@ -648,6 +638,7 @@ apr_2020/329.5
 apr_2018
 apr_2018/326.8
 apr_2020/329.5 - apr_2018/326.8
+
 0.00093498*(apr_2020/329.5 - apr_2018/326.8)*100000
 (apr_2020/329.5 - apr_2018/326.8)/(apr_2018/326.8)
 ```
