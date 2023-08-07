@@ -54,8 +54,8 @@ library(plm)
 load(file="./data/driving.RData")
 
 ## please comment these calls in your work 
-glimpse(data)
-desc
+# glimpse(data)
+# desc
 ```
 
 
@@ -496,6 +496,10 @@ When using a within estimator as opposed to a pooled estimator the estimates are
   \item Primary Seat Belt Law: The estimate changes from -9.21 (p = 0.85) to -1.24 (p ~= 0) deaths per 100k
 \end{itemize}
 
+```{r test if the fixed effects are significant}
+pFtest(lsdv_model_fixed_effects, lsdv_model_expand)
+```
+
 Both the Pooled and Fixed Effects Models assume the following:
 \begin{enumerate}
   \item Linearity in the parameters
@@ -503,7 +507,7 @@ Both the Pooled and Fixed Effects Models assume the following:
   \item No multi-collinearity
 \end{enumerate}
 
-However, the pooled OLS model also assumes that individual unobserved heterogeneity is uncorrelated with the independent variable. This is not a necessary assumption in the fixed effects model which makes it easier to satisfy the assumptions. In this case, this assumption can be satisfied because we are not looking at sample data, but rather, we are looking at population data. Considering that, both estimates will satisfy all the traditional assumptions; however, the pooled estimates are less efficient than the fixed effects estimates so it is likely that the fixed effects model has more accurate estimates.
+However, the pooled OLS model also assumes that individual unobserved heterogeneity is uncorrelated with the independent variable. This is not a necessary assumption in the fixed effects model which makes it easier to satisfy the assumptions. In this case, the assumption of uncorrelated, unobserved heterogeneity is not valid. This is a difficult assumption to satisfy and is further supported by the `pFtest` which rejected the null hypothesis that there are no significant fixed effects in the data. Because of this, the results from the fixed effects model are more trustworthy as the pooled model does not sufficiently satisfy the assumptions required.
 
 ```
 # (10 points) Consider a Random Effects Model 
