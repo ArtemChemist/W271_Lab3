@@ -441,7 +441,7 @@ Because the data set is a complete census of the population, and the model is de
 -  \textcolor{gray}{Do $per se laws$ have a negative effect on the fatality rate? }
 -  \textcolor{gray}{Does having a primary seat belt law?}
 
-```{r expanded linear regression}
+```{r expanded linear regression, results='asis'}
 lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year + 
                            dum_blood_alc + 
                            no_proof_guilt +
@@ -452,9 +452,27 @@ lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year +
                            unemployment +
                            miles_per_capita,
                       data = my_panel,
+                      effect = "individual", model = "pooling", weights = state_pop)
+
+lsdv_model_noweights <- plm(total_fatal_per_pop ~ dum_year + 
+                           dum_blood_alc + 
+                           no_proof_guilt +
+                           seat_belt +
+                           speed_limit_above_70 +
+                           gradual_dl +
+                           percent_young +
+                           unemployment +
+                           miles_per_capita,
+                      data = my_panel,
                       effect = "individual", model = "pooling")
+
 summary(lsdv_model_expand)
 ```
+EDA did not reveal any variables having significantly non-linear trend, so we refrained from any additional transformations. However, to avoid pooling together states as large as Texas and as small as Rhode Island, we introduced population weighting into the model.
+Blood alcohol content defined as a categorical variable with three levels: BAC 0.8, BAC 1.0 and no limit. The most stringent level, BAC 0.8, is the base category. The weighted model did not find significant correlation between BAC and fatalities, while the model with no weights does find strong influence of BAC.
+Per se laws also did not cross significance threshold in weighted model. 
+Having seat belt laws primary does reduce fatalities by 1.3 fatailty per 100,000 population, but secondary laws are not significant.
+
 
 # (15 points) State-Level Fixed Effects 
 
