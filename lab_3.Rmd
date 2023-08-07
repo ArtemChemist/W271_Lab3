@@ -50,8 +50,8 @@ library(plm)
 load(file="./data/driving.RData")
 
 ## please comment these calls in your work 
-# glimpse(data)
-# desc
+glimpse(data)
+desc
 ```
 
 
@@ -156,19 +156,19 @@ This data set is organized as a long table, with a set of observations for each 
 
 To make the data set suitable for our analysis, we applied a set of transformations (see above) and the rest of the description will discuss the transformed data set.
 
-Some of the variable that can only be binary (zero tollerance that can either be implemented or not) sometimes have fractional value. Presumably, that indicates the years when the variable changed its value. To simplify interpretations, we rounded these values to the nearest integer.
+Some of the variable that can only be binary (zero tolerance that can either be implemented or not) sometimes have fractional value. Presumably, that indicates the years when the variable changed its value. To simplify interpretations, we rounded these values to the nearest integer.
 
 ### Traffic Laws and Drinking Regulations
 
 Speed limit is represented by two categorical variables:
 \begin{itemize}
   \item Max speed limit in the state: $dum\_speed\_limit$ with categories $sl55$, $sl65$, $sl70$, $sl75$, $slnone$
-  \item Weather max speed limit in the state exceeds 70 mph: $speed\_limit\_above_70$
+  \item Whether max speed limit in the state exceeds 70 mph: $speed\_limit\_above_70$
 \end{itemize}
 
 Seat belt rules are represented by a categorical variable `seat_belt` with categories "0" if there is no law, '1' if not wearing a seat belt is a sufficient reason for a ticket, "2" if seat belt ticket can only be issued in  conjunction with another violation.
 
-Drivers licencing process is represented by `gradual_dl` indicating if there is a step-wise process to obtaining a full licence.
+Drivers licensing process is represented by `gradual_dl` indicating if there is a step-wise process to obtaining a full licence.
 
 Drinking regulations are represented by the following variables:
 \begin{itemize}
@@ -180,7 +180,7 @@ Drinking regulations are represented by the following variables:
 
 ### Fatalities
 
-Fatality is given as $total\_fatal$, total fatalities at this year and state and additional $night\_fatal$ and $weekend\_fatal$ variables giving tempral details. Data normalized to 100,000 people and to 100 milion miles driven is also presented in two groups of three variable. 
+Fatality is given as $total\_fatal$, total fatalities at this year and state and additional $night\_fatal$ and $weekend\_fatal$ variables giving temporal details. Data normalized to 100,000 people and to 100 million miles driven is also presented in two groups of three variable. 
 
 #### State demographics
 
@@ -188,7 +188,7 @@ Additional information for each year and each state is presented in numeric vari
 \begin{itemize}
   \item $state_pop$ is the state population
   \item $unemployment$ is the percent of unemployment
-  \item $percent\_young$ is the precent of poipulation 18 to 24 years old
+  \item $percent\_young$ is the percent of population 18 to 24 years old
   \item $miles\_per\_capita$ is the number of miles driven per person
 \end{itemize}
 
@@ -219,7 +219,7 @@ p2 <- my_panel %>%
   theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
   theme_minimal()
 
-p3<-my_panel %>%
+p3 <- my_panel %>%
   filter(state > 27 & state <= 39 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
@@ -228,7 +228,7 @@ p3<-my_panel %>%
   theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
   theme_minimal()
 
-p4<- my_panel %>%
+p4 <- my_panel %>%
   filter(state > 39 ) %>%
   ggplot(aes(x = year, y = total_fatal_per_pop)) +
   geom_line() +
@@ -280,7 +280,7 @@ grid.arrange(speed_lim_plot,no_proof_plot,seat_belt_plot,alc_plot, nrow = 2, nco
 ```
 Visualizing all 50 states would be visually overwhelming and for the next set of graphs we decided to use the most populous states and the states with the most interesting fatality-time patterns as representatives of the entire country. 
 
-The group of plots above show correlation of four policies on the road fatality rates: changes in speed limit, changes in seat belt laws, institution of no-proof guilt when it comes to DUI and blood alcohol limits. Unexpectedly, the speed limit seems to be inversely correlated with the fatality: the higher the limit the lower the fatality. This is likely the case of spurious correlation. More stringent seat belt laws are also related to the lower fatality rate more often than not. Introduction of $per\ se$ laws is also assotiated with the reduced fatality. Unsurprisingly, there is strong negative association between allowed alcohol concentration in the Having a mixture of expected and unexpected results, these plots are good reminders that correlation does not equal causation. 
+The group of plots above show correlation of four policies on the road fatality rates: changes in speed limit, changes in seat belt laws, institution of no-proof guilt when it comes to DUI and blood alcohol limits. Unexpectedly, the speed limit seems to be inversely correlated with the fatality: the higher the limit the lower the fatality. This is likely the case of spurious correlation. More stringent seat belt laws are also related to the lower fatality rate more often than not. Introduction of $per\ se$ laws is also associated with the reduced fatality. Unsurprisingly, there is strong negative association between allowed alcohol concentration in the Having a mixture of expected and unexpected results, these plots are good reminders that correlation does not equal causation. 
 
 ```{r continous variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
 state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
@@ -348,7 +348,7 @@ ggplot(data = broom::augment(lsdv_model), aes(x = 1979+as.numeric(dum_year), y =
   labs(x = "Year", y = "Fitted Fatalities, per 100k population ") +
   theme(legend.position = "none")
 ```
-Fitting a linear model might be a good first step, becasue most of the assumptions of a linear regression are satisfied:
+Fitting a linear model might be a good first step, because most of the assumptions of a linear regression are satisfied:
 \begin{enumerate}
   \item Linearity: each dummy variable has only two levels, therefore model is guaranteed linear
   \item I.I.D. : Fatality rate is reasonably independent across states
@@ -357,7 +357,7 @@ Fitting a linear model might be a good first step, becasue most of the assumptio
 \end{enumerate}
 
  \textcolor{red}{This model shows how much safer driving becomes for each year, as compared to 1980. All coefficients are statistically significant and negative, showing that driving in 1980 was the most dangerous of all years in observation. Generally, fitted fatality rate decreases, with a slight increase in the late 80s. Driving, on average became safer in this period.
-Because the data set is a complete census of the population, and the model is descriptive, there is no uncertainty associated with these estimates. These conclusions are purely descriptive, the errors can be calculated down to a single fatality. So, while linear models of this kind do suffer from bias int eh estimation of the coefficients, because of the potential correlation between state-level unobserved effects and the error terms, this would only matter if the data was a sample of the population.}
+Because the data set is a complete census of the population, and the model is descriptive, there is no uncertainty associated with these estimates. These conclusions are purely descriptive, the errors can be calculated down to a single fatality. So, while linear models of this kind do suffer from bias in the estimation of the coefficients, because of the potential correlation between state-level unobserved effects and the error terms, this would only matter if the data was a sample of the population.}
 
 # (15 points) Expanded Model 
 
@@ -381,30 +381,32 @@ Because the data set is a complete census of the population, and the model is de
 
 ```{r expanded linear regression}
 lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year + 
-                                        dum_blood_alc +
-                                        no_proof_guilt +
+                           dum_blood_alc +
+                           no_proof_guilt +
                            seat_belt +
                            speed_limit_above_70 +
                            gradual_dl +
                            percent_young +
                            unemployment +
                            miles_per_capita,
-                      data = my_panel, 
+                      data = my_panel,
                       effect = "individual", model = "pooling")
 summary(lsdv_model_expand)
 ```
 
-```{r exploratory}
-av_explore <- my_panel %>% group_by(year) %>% summarise(mean_fat = mean(total_fatal_per_pop),
-                                                        pop = sum(state_pop),
-                                                        unempl = sum(unemployment * state_pop)/pop,
-                                                        miles = sum(tot_miles_driven*1000000000)/pop,
-                                                        pop_08 = sum(state_pop * ifelse(dum_blood_alc == "0.8", 1, 0))/pop,
-                                                        pop_1 = sum(state_pop * ifelse(dum_blood_alc == "1.0", 1, 0))/pop,
-                                                        pop_non = sum(state_pop * ifelse(dum_blood_alc == "None", 1, 0))/pop,
-                                                        pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
-                                                        pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
-                                                        pop_70 = sum(state_pop * speed_limit_above_70)/pop)
+```{r expanded model exploratory}
+av_explore <- my_panel %>%
+  group_by(year) %>%
+  summarise(mean_fat = mean(total_fatal_per_pop),
+                       pop = sum(state_pop),
+                       unempl = sum(unemployment * state_pop)/pop,
+                       miles = sum(tot_miles_driven*1000000000)/pop,
+                       pop_08 = sum(state_pop * ifelse(dum_blood_alc == "0.8", 1, 0))/pop,
+                       pop_1 = sum(state_pop * ifelse(dum_blood_alc == "1.0", 1, 0))/pop,
+                       pop_non = sum(state_pop * ifelse(dum_blood_alc == "None", 1, 0))/pop,
+                       pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
+                       pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
+                       pop_70 = sum(state_pop * speed_limit_above_70)/pop)
 
 mean_fat_plot <- ggplot(data = av_explore) + aes(x = year, y = mean_fat) +
   geom_line(color = "red") +
@@ -458,7 +460,7 @@ pop70_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_70) +
 
 Re-estimate the **Expanded Model** using fixed effects at the state level. 
 
-- What do you estimate for coefficients on the blood alcohol variables? How do the coefficients on the blood alcohol variables change, if at all? 
+- What do you estimate for coefficients on the blood alcohol variables? How do the coefficients on the blood alcohol variables change, if at all?
 - What do you estimate for coefficients on per se laws? How do the coefficients on per se laws change, if at all? 
 - What do you estimate for coefficients on primary seat-belt laws? How do the coefficients on primary seatbelt laws change, if at all? 
 
@@ -466,8 +468,9 @@ Which set of estimates do you think is more reliable? Why do you think this?
 
 - What assumptions are needed in each of these models?  
 - Are these assumptions reasonable in the current context?
-```{r}
-fixed_effects = plm(total_fatal_per_pop ~ dum_year + 
+
+```{r state-level fixed effects model}
+lsdv_model_fixed_effects <- plm(total_fatal_per_pop ~ dum_year + 
                            dum_blood_alc +
                            no_proof_guilt +
                            seat_belt +
@@ -478,7 +481,25 @@ fixed_effects = plm(total_fatal_per_pop ~ dum_year +
                            miles_per_capita,
                       data = my_panel, 
                       effect = "individual", model = "within")
-summary(fixed_effects)
+summary(lsdv_model_fixed_effects)
+```
+
+When using a within estimator as opposed to a pooled estimator the estimates are significantly different:
+\begin{itemize}
+  \item BAC Limit of 1.0: The estimate changes from 1.02 (p = 0.006) to 4.04 (p = 0.099) deaths per 100k
+  \item No BAC Limit: The estimate changes from 2.36 (p ~= 0) to 1.36 (p ~= 0) deaths per 100k
+  \item Per Se Law: The estimate changes from -5.79 (p = 0.048) to -1.06 (p ~= 0) deaths per 100k
+  \item Primary Seat Belt Law: The estimate changes from -9.21 (p = 0.85) to -1.24 (p ~= 0) deaths per 100k
+\end{itemize}
+
+Both the Pooled and Fixed Effects Models assume the following:
+\begin{enumerate}
+  \item Linearity in the parameters
+  \item Samples are independent and identically distributed
+  \item No multi-collinearity
+\end{enumerate}
+
+However, the pooled OLS model also assumes that individual unobserved heterogeneity is uncorrelated with the independent variable. This is not a necessary assumption in the fixed effects model which makes it easier to satisfy the assumptions. In this case, this assumption can be satisfied because we are not looking at sample data, but rather, we are looking at population data. Considering that, both estimates will satisfy all the traditional assumptions; however, the pooled estimates are less efficient than the fixed effects estimates so it is likely that the fixed effects model has more accurate estimates.
 
 ```
 # (10 points) Consider a Random Effects Model 
