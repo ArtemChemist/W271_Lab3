@@ -80,15 +80,14 @@ for (i in 1:nrow(my_panel)) {
   year_level <- paste(ifelse(as.numeric(year_level) < 80, "20", "19"), year_level, sep = "")
   result_vector[i] <- year_level
 }
-# Add the new column to the dataframe
-
+# Add the new column to the dataframe and relevel it so that 1980 was level 0
 my_panel$year_of_observation <- relevel(as.factor(result_vector), ref = "1980")
 # Drop unneeded columns
 my_panel <- cbind(my_panel[,1:25], my_panel[,51:53])
-
 ```
 
 ```{r make bac and seatbelt variables}
+#Make BAC and seatbelt factor variables
 my_panel <- my_panel %>%
   mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "1.0", 
                        ifelse(bac08 >=0.5, "0.8", "None"))) %>% 
@@ -101,6 +100,7 @@ my_panel <- my_panel %>%
 ```
 
 ```{r Add state names}
+# Add state names and abbreviations to the dataframe
 # Create vectors for US states and their abbreviations
 us_states <- c(
   "Alabama", "Alaska", "Arizona", "Arkansas", "California",
@@ -147,7 +147,7 @@ names(my_panel) <- c("state", "year", "seat_belt", "min_age", "zero_tolerance",
 The data originates from the study by Freeman, D.G. (2007), “Drunk Driving Legislation and Traffic Fatalities: New Evidence on BAC 08 Laws” published in Contemporary Economic Policy 25, 293–308. Author of the study made the data publicly accessible. It appears to describe an entire population of the US, although the details of data collection are behind a pay wall. 
 
 This data set is organized as a long table, with a set of observations for each US state (except Alaska, Hawaii, District of Columbia that are missing) for each year from 1980 to 2004. The years are coded as a numeric values as well as categorical variables. For each state-year category there are observations related to the state's traffic laws, traffic fatalities, and population/driving statistics. The data is balanced.
-
+  `
 To make the data set suitable for our analysis, we applied a set of transformations (see above) and the rest of the description will discuss the transformed data set.
 
 Some of the variable that can only be binary (zero tolerance that can either be implemented or not) sometimes have fractional value. Presumably, that indicates the years when the variable changed its value. To simplify interpretations, we rounded these values to the nearest integer.
@@ -160,9 +160,9 @@ Speed limit is represented by two categorical variables:
   \item Whether max speed limit in the state exceeds 70 mph: $speed\_limit\_above_70$
 \end{itemize}
 
-Seat belt rules are represented by a categorical variable `seat_belt` with categories "0" if there is no law, '1' if not wearing a seat belt is a sufficient reason for a ticket, "2" if seat belt ticket can only be issued in  conjunction with another violation.
+Seat belt rules are represented by a categorical variable $seat\_belt$ with categories "0" if there is no law, '1' if not wearing a seat belt is a sufficient reason for a ticket, "2" if seat belt ticket can only be issued in  conjunction with another violation.
 
-Drivers licensing process is represented by `gradual_dl` indicating if there is a step-wise process to obtaining a full licence.
+Drivers licensing process is represented by $gradual\_dl$ indicating if there is a step-wise process to obtaining a full licence.
 
 Drinking regulations are represented by the following variables:
 \begin{itemize}
@@ -180,7 +180,7 @@ Fatality is given as $total\_fatal$, total fatalities at this year and state and
 
 Additional information for each year and each state is presented in numeric variables:
 \begin{itemize}
-  \item $state_pop$ is the state population
+  \item $state\_pop$ is the state population
   \item $unemployment$ is the percent of unemployment
   \item $percent\_young$ is the percent of population 18 to 24 years old
   \item $miles\_per\_capita$ is the number of miles driven per person
@@ -235,6 +235,8 @@ grid.arrange(p1,p2,p3,p4, nrow = 2, ncol = 2)
 ```
 Plots above show how fatality per person changes over time for each state represented in the data set. There is a general downward trend that is particularly visible in case of the more populous states such as Texas, California and Florida. Only South Dakota is trending up consistently, but that might be a statistical artifact caused by small population. Some states, like Texas, Utah and Colorado, exhibit a very consistent downward trend, that would be hard to explain by the influence of any one-time decision. A large group of states (Oregon, Pennsylvania and Maryland, to name a few) exhibit strong increase in the fatality rate in the late 80's early 90's before sudden drop to almost modern levels. This patters would be consistent with the influence of some policy change that became popular in the late 80's.
 
+Visualizing all 50 states would be visually overwhelming and for the next set of graphs we decided to use the most populous states and the states with the most interesting fatality-time patterns as representatives of the entire country: TX, CA, NY, MN, FL, AZ, SC, NM, WY, MO, TN, MS
+
 ```{r binary variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
 state_slice <- c('TX', 'CA', 'NY', 'MN', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
 
@@ -272,11 +274,11 @@ alc_plot <- my_panel %>%
 
 grid.arrange(speed_lim_plot,no_proof_plot,seat_belt_plot,alc_plot, nrow = 2, ncol = 2)
 ```
-Visualizing all 50 states would be visually overwhelming and for the next set of graphs we decided to use the most populous states and the states with the most interesting fatality-time patterns as representatives of the entire country. 
 
-The group of plots above show correlation of four policies on the road fatality rates: changes in speed limit, changes in seat belt laws, institution of no-proof guilt when it comes to DUI and blood alcohol limits. Unexpectedly, the speed limit seems to be inversely correlated with the fatality: the higher the limit the lower the fatality. This is likely the case of spurious correlation. More stringent seat belt laws are also related to the lower fatality rate more often than not. Introduction of $per\ se$ laws is also associated with the reduced fatality. Unsurprisingly, there is strong negative association between allowed alcohol concentration in the Having a mixture of expected and unexpected results, these plots are good reminders that correlation does not equal causation. 
+The group of plots above show correlation of four policies and the road fatality rates: changes in speed limit, changes in seat belt laws, institution of no-proof guilt when it comes to DUI and blood alcohol limits. Unexpectedly, the speed limit seems to be inversely correlated with the fatality: the higher the limit the lower the fatality. This is likely the case of spurious correlation. More stringent seat belt laws are also related to the lower fatality rate more often than not. Introduction of $per\ se$ laws is also associated with the reduced fatality. Unsurprisingly, there is strong negative association between allowed blood alcohol and fatalities, although the difference between BAC 0.8\textperthousand\ and 1.0\textperthousand\ is often negligible.
+Having a mixture of expected and unexpected results, these plots are good reminders that correlation does not equal causation. 
 
-```{r continous variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+```{r continous variables, warning=FALSE, echo=FALSE, fig.height=8, fig.width=12}
 state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
 
 unempl_plot <- my_panel %>%
@@ -314,9 +316,75 @@ gradual_plot <- my_panel %>%
 grid.arrange(unempl_plot, young_plot, driven_plot, nrow = 2, ncol = 2)
 ```
 
-The graphs above demonstrate correlation of factors that are outside of the legislator's control and change gradually, the factors that could cause gradual change in the fatality that we observed above. Unemployment does not seem to have a clear correlation with the fatality, while percentage of the young population has clear positive correrlation. Given the car insurance rates for young driver, we suspect that this effect is well known in the insurance world. 
+The graphs above demonstrate correlation of factors that are outside of the legislator's control. Thee factors change gradually and would be better suited to explain gradual change in the fatality that we observed above. Unemployment does not seem to have a clear correlation with the fatality, while percentage of the young population has clear positive correrlation. Given the car insurance rates for young driver, we suspect that this effect is well known in the insurance world. 
 Unexpectedly, the number of miles driven per person has negative correlation with the fatality: as the millage goes up the fatality goes down in most populous states. This effect is hard to rationalize and we expect to shed some light on it with more sophisticated analysis. 
- 
+
+Normalizing the legislations to population makes our observations even more clear. The graphs below present time-course of the following variables: nation-wide fatalities normalized to population, unemployment and miles per capita. Importantly, these values are not averages by state, but the average weighted byt the state population. The middle set of graphs presents the fraction of the US population living with the BAC 0.8, BAC 1.0 or no limit whatsoever. Similarily, the bottom row shows the fraction of the US population living with the speed limits 55, 65 or above 70 mph. These plots show, that mandating some BAC limit is anti-correlated with the fatalities very strongly, but the exact limit matters little. Miles driven per capita does not seem to have anything in common with the fatalities, nether does the speed limit.  
+
+```{r expanded model exploratory}
+av_explore <- my_panel %>%
+  group_by(year) %>%
+  summarise( pop = sum(state_pop),
+                       mean_fat = 100000 * sum(total_fatal)/pop,
+                       unempl = sum(unemployment * state_pop)/pop,
+                       miles = sum(tot_miles_driven*1000000000)/pop,
+                       pop_08 = sum(state_pop * ifelse(dum_blood_alc == "0.8", 1, 0))/pop,
+                       pop_1 = sum(state_pop * ifelse(dum_blood_alc == "1.0", 1, 0))/pop,
+                       pop_non = sum(state_pop * ifelse(dum_blood_alc == "None", 1, 0))/pop,
+                       pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
+                       pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
+                       pop_70 = sum(state_pop * speed_limit_above_70)/pop)
+```
+
+```{r plot additional EDA plots, echo=FALSE}
+mean_fat_plot <- ggplot(data = av_explore) + aes(x = year, y = mean_fat) +
+  geom_line(color = "red") +
+  labs(x = "Year", y = "Mean fatalities") +
+  theme(legend.position = "none")
+  
+mean_unempl_plot <- ggplot(data = av_explore) + aes(x = year, y = unempl) + 
+  geom_line(color = "blue") +
+  labs(x = "Year", y = "Mean unemployment") +
+  theme(legend.position = "none")
+  
+tot_miles_plot <- ggplot(data = av_explore) + aes(x = year, y = miles) + 
+  geom_line(color = "darkgreen") +
+  labs(x = "Year", y = "Miles per capita") +
+  theme(legend.position = "none")
+
+pop08_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_08) + 
+  geom_line(color = "gray") +
+  labs(x = "Year", y = "bac 0.8") +
+  theme(legend.position = "none")
+
+pop1_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_1) + 
+  geom_line(color = "gray") +
+  labs(x = "Year", y = "bac 1.0") +
+  theme(legend.position = "none")
+
+popNon_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_non) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "no bac limit") +
+  theme(legend.position = "none")
+
+pop55_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_55) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL 55") +
+  theme(legend.position = "none")
+
+pop65_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_65) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL65") +
+  theme(legend.position = "none")
+
+pop70_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_70) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL 70+") +
+  theme(legend.position = "none")
+
+(mean_fat_plot|mean_unempl_plot|tot_miles_plot)/(pop08_plot|pop1_plot|popNon_plot)/(pop55_plot|pop65_plot|pop70_plot)
+```
+
 
 # (15 points) Preliminary Model
 
@@ -375,7 +443,7 @@ Because the data set is a complete census of the population, and the model is de
 
 ```{r expanded linear regression}
 lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year + 
-                           dum_blood_alc +
+                           dum_blood_alc + 
                            no_proof_guilt +
                            seat_belt +
                            speed_limit_above_70 +
@@ -386,70 +454,6 @@ lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year +
                       data = my_panel,
                       effect = "individual", model = "pooling")
 summary(lsdv_model_expand)
-```
-
-```{r expanded model exploratory}
-av_explore <- my_panel %>%
-  group_by(year) %>%
-  summarise(mean_fat = mean(total_fatal_per_pop),
-                       pop = sum(state_pop),
-                       unempl = sum(unemployment * state_pop)/pop,
-                       miles = sum(tot_miles_driven*1000000000)/pop,
-                       pop_08 = sum(state_pop * ifelse(dum_blood_alc == "0.8", 1, 0))/pop,
-                       pop_1 = sum(state_pop * ifelse(dum_blood_alc == "1.0", 1, 0))/pop,
-                       pop_non = sum(state_pop * ifelse(dum_blood_alc == "None", 1, 0))/pop,
-                       pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
-                       pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
-                       pop_70 = sum(state_pop * speed_limit_above_70)/pop)
-```
-
-```{r plot additional EDA plots, echo=FALSE}
-mean_fat_plot <- ggplot(data = av_explore) + aes(x = year, y = mean_fat) +
-  geom_line(color = "red") +
-  labs(x = "Year", y = "Mean fatalities") +
-  theme(legend.position = "none")
-  
-mean_unempl_plot <- ggplot(data = av_explore) + aes(x = year, y = unempl) + 
-  geom_line(color = "blue") +
-  labs(x = "Year", y = "Mean unemployment") +
-  theme(legend.position = "none")
-  
-tot_miles_plot <- ggplot(data = av_explore) + aes(x = year, y = miles) + 
-  geom_line(color = "darkgreen") +
-  labs(x = "Year", y = "Miles per capita") +
-  theme(legend.position = "none")
-
-pop08_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_08) + 
-  geom_line(color = "gray") +
-  labs(x = "Year", y = "bac 0.8") +
-  theme(legend.position = "none")
-
-pop1_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_1) + 
-  geom_line(color = "gray") +
-  labs(x = "Year", y = "bac 1.0") +
-  theme(legend.position = "none")
-
-popNon_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_non) + 
-  geom_line(color = "black") +
-  labs(x = "Year", y = "no bac limit") +
-  theme(legend.position = "none")
-
-pop55_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_55) + 
-  geom_line(color = "black") +
-  labs(x = "Year", y = "SL 55") +
-  theme(legend.position = "none")
-
-pop65_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_65) + 
-  geom_line(color = "black") +
-  labs(x = "Year", y = "SL65") +
-  theme(legend.position = "none")
-
-pop70_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_70) + 
-  geom_line(color = "black") +
-  labs(x = "Year", y = "SL 70+") +
-  theme(legend.position = "none")
-
-(mean_fat_plot|mean_unempl_plot|tot_miles_plot)/(pop08_plot|pop1_plot|popNon_plot)/(pop55_plot|pop65_plot|pop70_plot)
 ```
 
 # (15 points) State-Level Fixed Effects 
