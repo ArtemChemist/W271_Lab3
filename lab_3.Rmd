@@ -5,8 +5,12 @@ output:
   bookdown::pdf_document2: default
 ---
 
+```{r}
+#install.packages("tidyverse")
+```
+
+
 ```{r load packages, echo=FALSE, message=FALSE, warning = FALSE}
-library(tidyverse)
 library(tsibble)
 library(latex2exp)
 library(dplyr)
@@ -24,7 +28,7 @@ if (!"car" %in% rownames(installed.packages())) {
   install.packages("car")
 }
 library(car)
-theme_set(theme_minimal())
+#theme_set(theme_minimal())
 
 ## provides geoms for ggplot2 to repel overlapping text labels.
 library(ggrepel)
@@ -509,6 +513,39 @@ Instead of estimating a fixed effects model, should you have estimated a random 
 - Please state the assumptions of a random effects model, and evaluate whether these assumptions are met in the data. 
 - If the assumptions are, in fact, met in the data, then estimate a random effects model and interpret the coefficients of this model. Comment on how, if at all, the estimates from this model have changed compared to the fixed effects model. 
 - If the assumptions are **not** met, then do not estimate the data. But, also comment on what the consequences would be if you were to *inappropriately* estimate a random effects model. Would your coefficient estimates be biased or not? Would your standard error estimates be biased or not? Or, would there be some other problem that might arise?
+
+- Independence across Units and Time: The error term should be uncorrelated with the explanatory variables, and the observations should be independent across individuals and time.
+- No Endogeneity: The individual-specific effect (unobserved heterogeneity) should be uncorrelated with the independent variables.
+- Homoskedasticity: The error term should have constant variance.
+- No Serial Correlation: There should be no correlation between the error term of different time periods for the same individual.
+
+The random effects model assumes that the individual-specific effects are uncorrelated with the explanatory variables. This means that the variation across entities is assumed to be random and uncorrelated with the predictor (or independent) variables included in the model.
+
+The Hausman test compares the fixed effects and random effects models to determine if the individual effects are correlated with the explanatory variables. If they are, the fixed effects model is preferred.
+
+Based on the Hausman test, this assumption is not met in our data. The p-value is virtually zero, leading to the rejection of the null hypothesis, and suggesting that the individual-specific effects are correlated with the explanatory variables.
+
+```{r}
+library(plm)
+
+# Define the formula
+formula <- total_fatal_per_pop ~ dum_year + dum_blood_alc + no_proof_guilt + seat_belt + 
+                                speed_limit_above_70 + gradual_dl + percent_young + 
+                                unemployment + miles_per_capita
+
+# Fit the random effects model
+random_model <- plm(formula, data = my_panel, model = "random")
+
+# Fit the fixed effects model
+fixed_model <- plm(formula, data = my_panel, model = "within")
+
+# Conduct the Hausman test
+hausman_test <- phtest(random_model, fixed_model)
+print(hausman_test)
+
+```
+If you were to inappropriately estimate a random effects model when the assumptions are not met, the coefficient estimates would be biased and inconsistent. They would not accurately capture the relationships between the variables in the model. The standard error estimates would also be biased, leading to incorrect inference. This could result in wrong conclusions about statistical significance. The random effects model also assumes that the variance components are constant across entities and time, and a failure of these assumptions could also lead to misleading results.
+
 
 # (10 points) Model Forecasts 
 
