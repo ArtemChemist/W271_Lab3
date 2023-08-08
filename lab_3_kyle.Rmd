@@ -658,3 +658,24 @@ The fixed effect model in part 6 shows that the slope of the variable "miles dri
 # (5 points) Evaluate Error 
 
 If there were serial correlation or heteroskedasticity in the idiosyncratic errors of the model, what would be the consequences on the estimators and their standard errors? Is there any serial correlation or heteroskedasticity? 
+
+Serial Correlation: If present, serial correlation does not cause the Ordinary Least Squares (OLS) estimators to be biased, but it can cause them to be inefficient. In other words, they no longer have the smallest possible variance among the class of linear unbiased estimators.
+
+Standard Errors: The standard errors are likely to be biased, leading to incorrect statistical inferences (e.g., t-tests and confidence intervals).
+
+Serial Correlation Test:
+
+```{r}
+library(plm)
+pbgtest(fixed_effects)
+
+```
+There is strong evidence of serial correlation in the idiosyncratic errors. 
+
+Breusch - Pagan test
+```{r}
+library(lmtest)
+bptest(fixed_effects)
+```
+The Breusch-Pagan test result  indicates a highly significant result (with a p-value close to zero). This suggests strong evidence against the null hypothesis of homoskedasticity.
+
