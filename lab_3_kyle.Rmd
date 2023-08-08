@@ -1,0 +1,627 @@
+---
+title: 'Lab 3: Panel Models'
+subtitle: 'US Traffic Fatalities: 1980 - 2004'
+output: 
+  bookdown::pdf_document2: default
+---
+
+```{r load packages, echo=FALSE, message=FALSE, warning = FALSE}
+library(tidyverse)
+library(tsibble)
+library(latex2exp)
+library(dplyr)
+library(magrittr)
+library(patchwork)
+library(lubridate)
+library(feasts)
+library(forecast)
+library(sandwich)
+if (!"fable" %in% rownames(installed.packages())) {
+  install.packages("fable")
+}
+library(fable)
+if (!"car" %in% rownames(installed.packages())) {
+  install.packages("car")
+}
+library(car)
+theme_set(theme_minimal())
+
+## provides geoms for ggplot2 to repel overlapping text labels.
+library(ggrepel)
+library(stargazer)
+library(gridExtra)
+
+# Provide a set of estimators for models and (robust) covariance matrices and tests for panel data econometrics, 
+library(plm)
+```
+
+
+# U.S. traffic fatalities: 1980-2004
+
+\textcolor{gray}{In this lab, we are asking you to answer the following **causal** question:}
+
+> **"Do changes in traffic laws affect traffic fatalities?"**  
+
+\textcolor{gray}{To answer this question, please complete the tasks specified below using the data provided in `data/driving.Rdata`. This data includes 25 years of data that cover changes in various state drunk driving, seat belt, and speed limit laws.}
+
+\textcolor{gray}{Specifically, this data set contains data for the 48 continental U.S. states from 1980 through 2004. Various driving laws are indicated in the data set, such as the alcohol level at which drivers are considered legally intoxicated. There are also indicators for “per se” laws—where licenses can be revoked without a trial—and seat belt laws. A few economics and demographic variables are also included. The description of the each of the variables in the dataset is also provided in the dataset.}
+
+```{r load data, echo = FALSE}
+load(file="./data/driving.RData")
+
+## please comment these calls in your work 
+# glimpse(data)
+# desc
+```
+
+
+# (30 points, total) Build and Describe the Data 
+
+1. \textcolor{gray}{(5 points) Load the data and produce useful features. Specifically:}
+    - \textcolor{gray}{Produce a new variable, called $speed_limit$ that re-encodes the data that is in $sl55$, $sl65$, $sl70$, $sl75$, and $slnone$;}
+    - \textcolor{gray}{Produce a new variable, called $year\_of\_observation$ that re-encodes the data that is in $d80$, $d81$, ... , $d04$.}
+    - \textcolor{gray}{Produce a new variable for each of the other variables that are one-hot encoded (i.e. $bac*$ variable series).} 
+    - \textcolor{gray}{Rename these variables to sensible names that are legible to a reader of your analysis. For example, the dependent variable as provided is called, $totfatrte$. Pick something more sensible, like, $total_fatalities_rate$. There are few enough of these variables to change, that you should change them for all the variables in the data. (You will thank yourself later.)}
+
+```{r make speed_limit variable}
+my_panel <- data %>%
+  mutate(speed_limit = ifelse(sl55 >=0.5, "55", 
+                     ifelse(sl65 >=0.5, "65", 
+                     ifelse(sl70 >=0.5, "70", 
+                     ifelse(sl75 >=0.5, "75", 
+                     ifelse(slnone >=0.5, "nolim", "NAN")))))) %>% 
+  select(-sl55, -sl65, -sl70, -sl75, -slnone) %>% # Drop unused columns
+  mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
+my_panel
+```
+
+```{r make year_of_observation variable}
+# Create an empty vector to store the names of non-zero columns for each row
+result_vector <- character(nrow(my_panel))
+year_names <- names(my_panel[,26:50])
+# Loop through each row and find the non-zero column name (if any)
+for (i in 1:nrow(my_panel)) {
+  year_level <-  sub(".", "", year_names[my_panel[i,26:50] != 0])
+  year_level <- paste(ifelse(as.numeric(year_level) < 80, "20", "19"), year_level, sep = "")
+  result_vector[i] <- year_level
+}
+# Add the new column to the dataframe
+
+my_panel$year_of_observation <- relevel(as.factor(result_vector), ref = "1980")
+# Drop unneeded columns
+my_panel <- cbind(my_panel[,1:25], my_panel[,51:53])
+
+```
+
+```{r make bac and seatbelt variables}
+my_panel <- my_panel %>%
+  mutate(blood_alc_lmt = ifelse(bac10 >=0.5, "1.0", 
+                       ifelse(bac08 >=0.5, "0.8", "None"))) %>% 
+  select(-bac10, -bac08, -sbprim, -sbsecon) %>% 
+  mutate(blood_alc_lmt = as.factor(blood_alc_lmt),
+         seatbelt = as.factor(seatbelt),
+         zerotol = as.logical(ifelse(zerotol >=0.5, T, F)),
+         gdl = as.logical(ifelse(gdl >=0.5, T, F)),
+         perse = as.logical(ifelse(perse >=0.5, T, F)))
+```
+
+```{r Add state names}
+# Create vectors for US states and their abbreviations
+us_states <- c(
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+  "Colorado", "Connecticut", "Delaware", "District Columbia", "Florida", "Georgia",
+  "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+  "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+  "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
+  "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+  "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
+  "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+  "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")
+
+state_abbreviations <- c(
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY")
+
+# Create a dataframe with US states and their abbreviations
+us_states_df <- data.frame(State_name = us_states, Abbreviation = state_abbreviations, state = seq(1:51))
+# Merge the names to the main panel
+my_panel <- merge(my_panel, us_states_df, by.x = "state", by.y = "state", all.x = TRUE)
+my_panel
+```
+
+```{r rename columns}
+names(my_panel) <- c("state", "year", "seat_belt", "min_age", "zero_tolerance",
+   "gradual_dl", "no_proof_guilt", 
+   "total_fatal", "night_fatal", "weekend_fatal",
+   "total_fatal_per_miles", "night_fatal_per_miles", "weekend_fatal_per_miles",
+   "state_pop", 
+   "total_fatal_per_pop", "night_fatal_per_pop", "weekend_fatal_per_pop",
+   "tot_miles_driven", "unemployment", "percent_young", "speed_limit_above_70",
+   "miles_per_capita", "dum_speed_limit", "dum_year", "dum_blood_alc",
+   "state_name", "state_abbr")
+```
+
+## Description of Dataset
+
+2. \textcolor{gray}{(5 points) Provide a description of the basic structure of the dataset. What is this data? How, where, and when is it collected? Is the data generated through a survey or some other method? Is the data that is presented a sample from the population, or is it a *census* that represents the entire population? Minimally, this should include:}
+    - \textcolor{gray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
+
+The data originates from the study by Freeman, D.G. (2007), “Drunk Driving Legislation and Traffic Fatalities: New Evidence on BAC 08 Laws” published in Contemporary Economic Policy 25, 293–308. Author of the study made the data publicly accessible. It appears to describe an entire population of the US, although the details of data collection are behind a pay wall. 
+
+This data set is organized as a long table, with a set of observations for each US state (except Alaska, Hawaii, District of Columbia that are missing) for each year from 1980 to 2004. The years are coded as a numeric values as well as categorical variables. For each state-year category there are observations related to the state's traffic laws, traffic fatalities, and population/driving statistics. The data is balanced.
+
+To make the data set suitable for our analysis, we applied a set of transformations (see above) and the rest of the description will discuss the transformed data set.
+
+Some of the variable that can only be binary (zero tollerance that can either be implemented or not) sometimes have fractional value. Presumably, that indicates the years when the variable changed its value. To simplify interpretations, we rounded these values to the nearest integer.
+
+### Traffic Laws and Drinking Regulations
+
+Speed limit is represented by two categorical variables:
+\begin{itemize}
+  \item Max speed limit in the state: $dum\_speed\_limit$ with categories $sl55$, $sl65$, $sl70$, $sl75$, $slnone$
+  \item Weather max speed limit in the state exceeds 70 mph: $speed\_limit\_above_70$
+\end{itemize}
+
+Seat belt rules are represented by a categorical variable `seat_belt` with categories "0" if there is no law, '1' if not wearing a seat belt is a sufficient reason for a ticket, "2" if seat belt ticket can only be issued in  conjunction with another violation.
+
+Drivers licencing process is represented by `gradual_dl` indicating if there is a step-wise process to obtaining a full licence.
+
+Drinking regulations are represented by the following variables:
+\begin{itemize}
+  \item $min\_age$ is a number representing the legal drinking age
+  \item $zero\_tolerance$ is a logical variable showing if zero alcohol tolerance is in force
+  \item $blood\_alc\_lmt$ is a categorical with three levels: `bac08` for 0.8\textperthousand\, `bac10` for 1.0\textperthousand\ and `none` for no upper limit.
+  \item $no_proof\_guilt$ is a logical variable that indicates if drivers licence can be suspended without positive medical proof of driving under influence.
+\end{itemize}
+
+### Fatalities
+
+Fatality is given as $total\_fatal$, total fatalities at this year and state and additional $night\_fatal$ and $weekend\_fatal$ variables giving tempral details. Data normalized to 100,000 people and to 100 milion miles driven is also presented in two groups of three variable. 
+
+#### State demographics
+
+Additional information for each year and each state is presented in numeric variables:
+\begin{itemize}
+  \item $state_pop$ is the state population
+  \item $unemployment$ is the percent of unemployment
+  \item $percent\_young$ is the precent of poipulation 18 to 24 years old
+  \item $miles\_per\_capita$ is the number of miles driven per person
+\end{itemize}
+
+## EDA
+
+3. \textcolor{gray}{(20 points) Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable $total\_fatalities\_rate$ and the potential explanatory variables. Minimally, this should include:}
+    - \textcolor{gray}{How is the our dependent variable of interest $total\_fatalities\_rate$ defined?}
+    - \textcolor{gray}{What is the average of $total\_fatalities\_rate$ in each of the years in the time period covered in this dataset?}
+
+\textcolor{gray}{As with every EDA this semester, the goal of this EDA is not to document your own process of discovery -- save that for an exploration notebook -- but instead it is to bring a reader that is new to the data to a full understanding of the important features of your data as quickly as possible. In order to do this, your EDA should include a detailed, orderly narrative description of what you want your reader to know. Do not include any output -- tables, plots, or statistics -- that you do not intend to write about.}
+
+```{r main plots,warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+p1 <- my_panel %>%
+  filter(state <= 15 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
+
+p2 <- my_panel %>%
+  filter(state > 15 & state <= 27 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
+
+p3<-my_panel %>%
+  filter(state > 27 & state <= 39 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
+
+p4<- my_panel %>%
+  filter(state > 39 ) %>%
+  ggplot(aes(x = year, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Year",  y = "Fatalities/100k people") +
+  theme(legend.position = "none") + scale_x_continuous(breaks = seq(1980, 2004, by = 10))+
+  theme_minimal()
+
+grid.arrange(p1,p2,p3,p4, nrow = 2, ncol = 2)
+```
+Plots above show how fatality per person changes over time for each state represented in the data set. There is a general downward trend that is particularly visible in case of the more populous states such as Texas, California and Florida. Only South Dakota is trending up consistently, but that might be a statistical artifact caused by small population. Some states, like Texas, Utah and Colorado, exhibit a very consistent downward trend, that would be hard to explain by the influence of any one-time decision. A large group of states (Oregon, Pennsylvania and Maryland, to name a few) exhibit strong increase in the fatality rate in the late 80's early 90's before sudden drop to almost modern levels. This patters would be consistent with the influence of some policy change that became popular in the late 80's.
+
+```{r binary variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+state_slice <- c('TX', 'CA', 'NY', 'MN', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
+
+speed_lim_plot <- my_panel %>%
+  filter(state_abbr %in%  state_slice ) %>%
+  ggplot(aes(x = dum_speed_limit, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Speed Limit",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
+
+no_proof_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = no_proof_guilt, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Need to prove guilt?",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))   + scale_x_discrete(labels = c("FALSE" = "N", "TRUE" = "Y"))
+
+seat_belt_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = seat_belt, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Click it or ticket?",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("0" = "N", "1" = "Y", "2" = "Mbe"))
+
+alc_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = dum_blood_alc, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Drink and drive!",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6)) 
+
+grid.arrange(speed_lim_plot,no_proof_plot,seat_belt_plot,alc_plot, nrow = 2, ncol = 2)
+```
+Visualizing all 50 states would be visually overwhelming and for the next set of graphs we decided to use the most populous states and the states with the most interesting fatality-time patterns as representatives of the entire country. 
+
+The group of plots above show correlation of four policies on the road fatality rates: changes in speed limit, changes in seat belt laws, institution of no-proof guilt when it comes to DUI and blood alcohol limits. Unexpectedly, the speed limit seems to be inversely correlated with the fatality: the higher the limit the lower the fatality. This is likely the case of spurious correlation. More stringent seat belt laws are also related to the lower fatality rate more often than not. Introduction of $per\ se$ laws is also assotiated with the reduced fatality. Unsurprisingly, there is strong negative association between allowed alcohol concentration in the Having a mixture of expected and unexpected results, these plots are good reminders that correlation does not equal causation. 
+
+```{r continous variables, warning=FALSE, echo=FALSE, fig.height=6, fig.width=12}
+state_slice <- c('TX', 'CA', 'NY', 'KY', 'FL', 'AZ', 'SC', 'NM', 'WY', 'MO', 'TN', 'MS')
+
+unempl_plot <- my_panel %>%
+  filter(state_abbr %in%  state_slice ) %>%
+  ggplot(aes(x = unemployment, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Unemployment",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
+
+young_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = percent_young, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Percent 18 to 24",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
+
+driven_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = miles_per_capita/1000, y = total_fatal_per_pop)) +
+  geom_line() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "1000's of miles driven",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))
+
+gradual_plot <- my_panel %>%
+  filter(state_abbr %in% state_slice ) %>%
+  ggplot(aes(x = gradual_dl, y = total_fatal_per_pop)) +
+  geom_boxplot() +
+  facet_wrap(~ state_abbr, scales = "free", nrow = 3) +
+  labs(x = "Complex lincence?",  y = "Fatalities/100k people") +
+  theme(legend.position = "none", strip.text = element_text(size = 6))  + scale_x_discrete(labels = c("FALSE" = "N", "TRUE" = "Y"))
+
+grid.arrange(unempl_plot, young_plot, driven_plot, nrow = 2, ncol = 2)
+```
+
+The graphs above demonstrate correlation of factors that are outside of the legislator's control and change gradually, the factors that could cause gradual change in the fatality that we observed above. Unemployment does not seem to have a clear correlation with the fatality, while percentage of the young population has clear positive correrlation. Given the car insurance rates for young driver, we suspect that this effect is well known in the insurance world. 
+Unexpectedly, the number of miles driven per person has negative correlation with the fatality: as the millage goes up the fatality goes down in most populous states. This effect is hard to rationalize and we expect to shed some light on it with more sophisticated analysis. 
+ 
+
+# (15 points) Preliminary Model
+
+\textcolor{gray}{Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004 and interpret what you observe. In this section, you should address the following tasks:}
+
+- \textcolor{gray}{Why is fitting a linear model a sensible starting place?}
+- \textcolor{gray}{What does this model explain, and what do you find in this model?}
+- \textcolor{gray}{Did driving become safer over this period? Please provide a detailed explanation.}
+- \textcolor{gray}{What, if any, are the limitation of this model. In answering this, please consider **at least**:}
+    - \textcolor{gray}{Are the parameter estimates reliable, unbiased estimates of the truth? Or, are they biased due to the way that the data is structured?}
+    - \textcolor{gray}{Are the uncertainty estimate reliable, unbiased estimates of sampling based variability? Or, are they biased due to the way that the data is structured?}
+    
+```{r linear regression model}
+lsdv_model <- plm(total_fatal_per_pop ~ dum_year, data = my_panel, 
+                      effect = "individual", model = "pooling")
+# summary(lsdv_model)
+
+av_fat <- my_panel %>% group_by(year) %>% summarise(mean_fat = mean(total_fatal_per_pop))
+
+ggplot(data = broom::augment(lsdv_model), aes(x = 1979+as.numeric(dum_year), y = .fitted)) +
+  geom_line() +
+  geom_point(aes(x = year, y = mean_fat), color = "red", data = av_fat) +
+  labs(x = "Year", y = "Fitted Fatalities, per 100k population ") +
+  theme(legend.position = "none")
+```
+Fitting a linear model might be a good first step, becasue most of the assumptions of a linear regression are satisfied:
+\begin{enumerate}
+  \item Linearity: each dummy variable has only two levels, therefore model is guaranteed linear
+  \item I.I.D. : Fatality rate is reasonably independent across states
+  \item No perfect colinearity in the data
+  \item No obvious correlation between the error term and individual-specific effects
+\end{enumerate}
+
+ \textcolor{red}{This model shows how much safer driving becomes for each year, as compared to 1980. All coefficients are statistically significant and negative, showing that driving in 1980 was the most dangerous of all years in observation. Generally, fitted fatality rate decreases, with a slight increase in the late 80s. Driving, on average became safer in this period.
+Because the data set is a complete census of the population, and the model is descriptive, there is no uncertainty associated with these estimates. These conclusions are purely descriptive, the errors can be calculated down to a single fatality. So, while linear models of this kind do suffer from bias int eh estimation of the coefficients, because of the potential correlation between state-level unobserved effects and the error terms, this would only matter if the data was a sample of the population.}
+
+# (15 points) Expanded Model 
+
+ \textcolor{gray}{Expand the $Preliminary Model$ by adding variables related to the following concepts:} 
+
+-  \textcolor{gray}{Blood alcohol levels} 
+-  \textcolor{gray}{Per se laws}
+-  \textcolor{gray}{Primary seat belt laws (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)}
+-  \textcolor{gray}{Secondary seat belt laws} 
+-  \textcolor{gray}{Speed limits faster than 70} 
+-  \textcolor{gray}{Graduated drivers licenses} 
+-  \textcolor{gray}{Percent of the population between 14 and 24 years old}
+-  \textcolor{gray}{Unemployment rate}
+-  \textcolor{gray}{Vehicle miles driven per capita. }
+
+ \textcolor{gray}{If it is appropriate, include transformations of these variables. Please carefully explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed.} 
+
+-  \textcolor{gray}{How are the blood alcohol variables defined? Interpret the coefficients that you estimate for this concept.} 
+-  \textcolor{gray}{Do $per se laws$ have a negative effect on the fatality rate? }
+-  \textcolor{gray}{Does having a primary seat belt law?}
+
+```{r expanded linear regression}
+lsdv_model_expand <- plm(total_fatal_per_pop ~ dum_year + 
+                                        dum_blood_alc +
+                                        no_proof_guilt +
+                           seat_belt +
+                           speed_limit_above_70 +
+                           gradual_dl +
+                           percent_young +
+                           unemployment +
+                           miles_per_capita,
+                      data = my_panel, 
+                      effect = "individual", model = "pooling")
+summary(lsdv_model_expand)
+```
+
+```{r exploratory}
+av_explore <- my_panel %>% group_by(year) %>% summarise(mean_fat = mean(total_fatal_per_pop),
+                                                        pop = sum(state_pop),
+                                                        unempl = sum(unemployment * state_pop)/pop,
+                                                        miles = sum(tot_miles_driven*1000000000)/pop,
+                                                        pop_08 = sum(state_pop * ifelse(dum_blood_alc == "0.8", 1, 0))/pop,
+                                                        pop_1 = sum(state_pop * ifelse(dum_blood_alc == "1.0", 1, 0))/pop,
+                                                        pop_non = sum(state_pop * ifelse(dum_blood_alc == "None", 1, 0))/pop,
+                                                        pop_55 = sum(state_pop * ifelse(dum_speed_limit == "55", 1, 0))/pop,
+                                                        pop_65 = sum(state_pop * ifelse(dum_speed_limit == "65", 1, 0))/pop,
+                                                        pop_70 = sum(state_pop * speed_limit_above_70)/pop)
+
+mean_fat_plot <- ggplot(data = av_explore) + aes(x = year, y = mean_fat) +
+  geom_line(color = "red") +
+  labs(x = "Year", y = "Mean fatalities") +
+  theme(legend.position = "none")
+  
+mean_unempl_plot <- ggplot(data = av_explore) + aes(x = year, y = unempl) + 
+  geom_line(color = "blue") +
+  labs(x = "Year", y = "Mean unemployment") +
+  theme(legend.position = "none")
+  
+tot_miles_plot <- ggplot(data = av_explore) + aes(x = year, y = miles) + 
+  geom_line(color = "darkgreen") +
+  labs(x = "Year", y = "Miles per capita") +
+  theme(legend.position = "none")
+
+pop08_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_08) + 
+  geom_line(color = "gray") +
+  labs(x = "Year", y = "bac 0.8") +
+  theme(legend.position = "none")
+
+pop1_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_1) + 
+  geom_line(color = "gray") +
+  labs(x = "Year", y = "bac 1.0") +
+  theme(legend.position = "none")
+
+popNon_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_non) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "no bac limit") +
+  theme(legend.position = "none")
+
+pop55_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_55) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL 55") +
+  theme(legend.position = "none")
+
+pop65_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_65) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL65") +
+  theme(legend.position = "none")
+
+pop70_plot <- ggplot(data = av_explore) + aes(x = year, y = pop_70) + 
+  geom_line(color = "black") +
+  labs(x = "Year", y = "SL 70+") +
+  theme(legend.position = "none")
+
+(mean_fat_plot|mean_unempl_plot|tot_miles_plot)/(pop08_plot|pop1_plot|popNon_plot)/(pop55_plot|pop65_plot|pop70_plot)
+```
+# (15 points) State-Level Fixed Effects 
+
+Re-estimate the **Expanded Model** using fixed effects at the state level. 
+
+- What do you estimate for coefficients on the blood alcohol variables? How do the coefficients on the blood alcohol variables change, if at all? 
+- What do you estimate for coefficients on per se laws? How do the coefficients on per se laws change, if at all? 
+- What do you estimate for coefficients on primary seat-belt laws? How do the coefficients on primary seatbelt laws change, if at all? 
+
+Which set of estimates do you think is more reliable? Why do you think this? 
+
+- What assumptions are needed in each of these models?  
+- Are these assumptions reasonable in the current context?
+```{r}
+fixed_effects = plm(total_fatal_per_pop ~ dum_year + 
+                           dum_blood_alc +
+                           no_proof_guilt +
+                           seat_belt +
+                           speed_limit_above_70 +
+                           gradual_dl +
+                           percent_young +
+                           unemployment +
+                           miles_per_capita,
+                      data = my_panel, 
+                      effect = "individual", model = "within")
+summary(fixed_effects)
+
+```
+# (10 points) Consider a Random Effects Model 
+
+Instead of estimating a fixed effects model, should you have estimated a random effects model?
+
+- Please state the assumptions of a random effects model, and evaluate whether these assumptions are met in the data. 
+- If the assumptions are, in fact, met in the data, then estimate a random effects model and interpret the coefficients of this model. Comment on how, if at all, the estimates from this model have changed compared to the fixed effects model. 
+- If the assumptions are **not** met, then do not estimate the data. But, also comment on what the consequences would be if you were to *inappropriately* estimate a random effects model. Would your coefficient estimates be biased or not? Would your standard error estimates be biased or not? Or, would there be some other problem that might arise?
+
+# (10 points) Model Forecasts 
+
+The COVID-19 pandemic dramatically changed patterns of driving. Find data (and include this data in your analysis, here) that includes some measure of vehicle miles driven in the US. Your data should at least cover the period from January 2018 to as current as possible. With this data, produce the following statements: 
+
+
+The data I am using is the Vehicle Miles Traveled dataset from Fred. The unit is in millions of miles.
+The dataset includes the monthly vehicle miles traveled from 2012 to 2023. For this experiment, I am only using the data from 2018 to 2023.
+
+Source: https://fred.stlouisfed.org/series/TRFVOLUSM227SFWA
+
+```{r message = FALSE, echo=FALSE}
+df = read.csv("travel_data.csv")
+
+df = df[211:281,]
+colnames(df)[1] = "date"
+colnames(df)[2] = "miles"
+summary(df$miles)
+travel_plot <- ggplot(df,aes(x = df$date, y = df$miles))+geom_point()+ggtitle("Plot of Mileage by Month from 2017 to 2023")+xlab("Month")+ylab("Miles")+geom_line(color="green")
+
+travel_plot
+
+```
+After doing a quick check, we see no anomaly in the data. The monthly miles ranges from 167174 (during covid) to 285452. The monthly plot shows a similar picture.
+
+```{r message = FALSE, echo = FALSE}
+jan_2018 = df[df$date == "2018-01-01",]$miles
+feb_2018 = df[df$date == "2018-02-01",]$miles
+mar_2018 = df[df$date == "2018-03-01",]$miles
+apr_2018 = df[df$date == "2018-04-01",]$miles
+may_2018 = df[df$date == "2018-05-01",]$miles
+jun_2018 = df[df$date == "2018-06-01",]$miles
+jul_2018 = df[df$date == "2018-07-01",]$miles
+aug_2018 = df[df$date == "2018-08-01",]$miles
+sep_2018 = df[df$date == "2018-09-01",]$miles
+oct_2018 = df[df$date == "2018-10-01",]$miles
+nov_2018 = df[df$date == "2018-11-01",]$miles
+dec_2018 = df[df$date == "2018-12-01",]$miles
+
+jan_2020 = df[df$date == "2020-01-01",]$miles
+feb_2020 = df[df$date == "2020-02-01",]$miles
+mar_2020 = df[df$date == "2020-03-01",]$miles
+apr_2020 = df[df$date == "2020-04-01",]$miles
+may_2020 = df[df$date == "2020-05-01",]$miles
+jun_2020 = df[df$date == "2020-06-01",]$miles
+jul_2020 = df[df$date == "2020-07-01",]$miles
+aug_2020 = df[df$date == "2020-08-01",]$miles
+sep_2020 = df[df$date == "2020-09-01",]$miles
+oct_2020 = df[df$date == "2020-10-01",]$miles
+nov_2020 = df[df$date == "2020-11-01",]$miles
+dec_2020 = df[df$date == "2020-12-01",]$miles
+jan_2021 = df[df$date == "2021-01-01",]$miles
+
+
+jan_diff = jan_2020 - jan_2018
+feb_diff = feb_2020 - feb_2018
+mar_diff = mar_2020 - mar_2018
+apr_diff = apr_2020 - apr_2018
+may_diff = may_2020 - may_2018
+jun_diff = jun_2020 - jun_2018
+jul_diff = jul_2020 - jul_2018
+aug_diff = aug_2020 - aug_2018
+sep_diff = sep_2020 - sep_2018
+oct_diff = oct_2020 - oct_2018
+nov_diff = nov_2020 - nov_2018
+dec_diff = dec_2020 - dec_2018
+
+```
+```{r}
+
+month = c(1:12)
+diff = c(jan_diff,feb_diff,mar_diff,apr_diff,may_diff,jun_diff,jul_diff,aug_diff,sep_diff,oct_diff,nov_diff,dec_diff)
+
+diff_df = data.frame(month,diff)
+ggplot(diff_df,aes(x = month, y = diff))+geom_point()+ggtitle("Plot of Mileage Difference by Month Between 2018 and 2020")+xlab("Month")+ylab("Difference in Miles")
+```
+- Comparing monthly miles driven in 2018 to the same months during the pandemic: 
+
+### Raw Data
+
+```{r message = FALSE, echo =FALSE, warning = FALSE}
+
+apr_2020_2018_diff = apr_2020 - apr_2018
+raw_percent_apr_2020_2018 = apr_2020 / apr_2018 - 1
+
+jan_2020_2018_diff = jan_2020 - jan_2018
+raw_percent_jan_2020_2018 = jan_2020 / jan_2018 - 1
+```
+###Normalizated to per 100000 capita: The population in 2018 was 326.8 million. The population in 2020 was 329.5 million.
+```{r message = FALSE, echo =FALSE, warning = FALSE}
+p_2018 = 326.8
+p_2020 = 329.5
+
+miles_per_capita_apr_2020 = apr_2020/p_2020
+
+miles_per_capita_apr_2018 = apr_2018/p_2018
+diff_per_capita_apr = apr_2020/329.5 - apr_2018/326.8
+change_100000_apr = 0.00093498*(apr_2020/329.5 - apr_2018/326.8)*100000
+change_apr_percent = (apr_2020/329.5 - apr_2018/326.8)/(apr_2018/326.8)
+```
+```{r message = FALSE, echo =FALSE, warning = FALSE}
+
+miles_per_capita_jan_2020 = jan_2020/p_2020
+
+miles_per_capita_jan_2018 = jan_2018/p_2018
+diff_per_capita_jan = jan_2020/329.5-jan_2018/326.8
+
+change_100000_jan =0.00093498*(jan_2020/329.5-jan_2018/326.8)*100000
+change_jan_percent = (jan_2020/329.5-jan_2018/326.8)/(jan_2018/326.8)
+```
+```{r echo = FALSE, message = FALSE}
+summary(my_panel$total_fatal_per_pop)
+
+```
+The month of April 2020 demonstrated the largest decrease in driving, from `r apr_2018` in April 2018 to `r apr_2020` in April 2020. This was a 38.8% decrease.
+The month of January 2020 demonstrated the largest increase in driving, from `r jan_2018` in January 2018 to `r jan_2020` in January 2020. This was a 6.4% increase.
+
+If we normalize our results to per 100000 capita:
+
+The month of April 2020 demonstrated the largest decrease in miles per capita, from `r miles_per_capita_apr_2018` in April 2018 to `r miles_per_capita_apr_2020` in April 2020. This was a 39.3% decrease.
+The month of January 2020 demonstrated the largest increase in miles per capita, from `r miles_per_capita_jan_2018` in January 2018 to `r miles_per_capita_jan_2020`. This was a 5.5% increase.
+  
+  
+  
+Now, use these changes in driving to make forecasts from your models. 
+
+- Suppose that the number of miles driven per capita, increased by as much as the COVID boom. Using the FE estimates, what would the consequences be on the number of traffic fatalities? Please interpret the estimate.
+
+The fixed effect model in part 6 shows that the slope of the variable "miles driven per capita" is 0.00093498 with a statistically significantly p-value. If the number of miles driven per capita were to increase by as much as `r diff_per_capita_jan`, the difference between January 2018 and January 2020, the model predicts that the number of traffic fatalities would increase by `r change_100000_jan` per 100000 capita.
+
+- Suppose that the number of miles driven per capita, decreased by as much as the COVID bust. Using the FE estimates, what would the consequences be on the number of traffic fatalities? Please interpret the estimate.
+
+The fixed effect model in part 6 shows that the slope of the variable "miles driven per capita" is 0.00093498 with a statistically significantly p-value. If the number of miles driven per capita were to decrease by as much as `r diff_per_capita_apr`, the difference between April 2018 and April 2020, the model predicts that the number of traffic fatalities would decrease by `r change_100000_jan` per 100000 capita.
+
+
+# (5 points) Evaluate Error 
+
+If there were serial correlation or heteroskedasticity in the idiosyncratic errors of the model, what would be the consequences on the estimators and their standard errors? Is there any serial correlation or heteroskedasticity? 
