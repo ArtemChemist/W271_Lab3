@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r load packages, echo=FALSE, message=FALSE, warning = FALSE}
-library(tidyverse)
+#library(tidyverse)
 library(tsibble)
 library(latex2exp)
 library(dplyr)
@@ -24,7 +24,7 @@ if (!"car" %in% rownames(installed.packages())) {
   install.packages("car")
 }
 library(car)
-theme_set(theme_minimal())
+#theme_set(theme_minimal())
 
 ## provides geoms for ggplot2 to repel overlapping text labels.
 library(ggrepel)
@@ -72,7 +72,7 @@ my_panel <- data %>%
                      ifelse(slnone >=0.5, "nolim", "NAN")))))) %>% 
   select(-sl55, -sl65, -sl70, -sl75, -slnone) %>% # Drop unused columns
   mutate(speed_limit = as.factor(speed_limit))    # Convert to factor
-my_panel
+#my_panel
 ```
 
 ```{r make year_of_observation variable}
@@ -130,7 +130,7 @@ state_abbreviations <- c(
 us_states_df <- data.frame(State_name = us_states, Abbreviation = state_abbreviations, state = seq(1:51))
 # Merge the names to the main panel
 my_panel <- merge(my_panel, us_states_df, by.x = "state", by.y = "state", all.x = TRUE)
-my_panel
+#my_panel
 ```
 
 ```{r rename columns}
@@ -488,6 +488,41 @@ Instead of estimating a fixed effects model, should you have estimated a random 
 - If the assumptions are, in fact, met in the data, then estimate a random effects model and interpret the coefficients of this model. Comment on how, if at all, the estimates from this model have changed compared to the fixed effects model. 
 - If the assumptions are **not** met, then do not estimate the data. But, also comment on what the consequences would be if you were to *inappropriately* estimate a random effects model. Would your coefficient estimates be biased or not? Would your standard error estimates be biased or not? Or, would there be some other problem that might arise?
 
+1. Independence across Units and Time: The error term should be uncorrelated with the explanatory variables, and the observations should be independent across individuals and time.
+2. No Endogeneity: The individual-specific effect (unobserved heterogeneity) should be uncorrelated with the independent variables.
+3. Homoskedasticity: The error term should have constant variance.
+4. No Serial Correlation: There should be no correlation between the error term of different time periods for the same individual.
+
+The random effects model assumes that the individual-specific effects are uncorrelated with the explanatory variables. This means that the variation across entities is assumed to be random and uncorrelated with the predictor (or independent) variables included in the model.
+
+The Hausman test compares the fixed effects and random effects models to determine if the individual effects are correlated with the explanatory variables. If they are, the fixed effects model is preferred.
+
+Based on the Hausman test, this assumption is not met in our data. The p-value is virtually zero, leading to the rejection of the null hypothesis, and suggesting that the individual-specific effects are correlated with the explanatory variables.
+
+```{r}
+library(plm)
+
+# Define the formula
+formula <- total_fatal_per_pop ~ dum_year + dum_blood_alc + no_proof_guilt + seat_belt + 
+                                speed_limit_above_70 + gradual_dl + percent_young + 
+                                unemployment + miles_per_capita
+
+# Fit the random effects model
+random_model <- plm(formula, data = my_panel, model = "random")
+
+# Fit the fixed effects model
+fixed_model <- plm(formula, data = my_panel, model = "within")
+
+# Conduct the Hausman test
+hausman_test <- phtest(random_model, fixed_model)
+print(hausman_test)
+
+```
+If you were to inappropriately estimate a random effects model when the assumptions are not met, the coefficient estimates would be biased and inconsistent. They would not accurately capture the relationships between the variables in the model. The standard error estimates would also be biased, leading to incorrect inference. This could result in wrong conclusions about statistical significance. The random effects model also assumes that the variance components are constant across entities and time, and a failure of these assumptions could also lead to misleading results.
+
+
+
+
 # (10 points) Model Forecasts 
 
 The COVID-19 pandemic dramatically changed patterns of driving. Find data (and include this data in your analysis, here) that includes some measure of vehicle miles driven in the US. Your data should at least cover the period from January 2018 to as current as possible. With this data, produce the following statements: 
@@ -608,9 +643,7 @@ If we normalize our results to per 100000 capita:
 
 The month of April 2020 demonstrated the largest decrease in miles per capita, from `r miles_per_capita_apr_2018` in April 2018 to `r miles_per_capita_apr_2020` in April 2020. This was a 39.3% decrease.
 The month of January 2020 demonstrated the largest increase in miles per capita, from `r miles_per_capita_jan_2018` in January 2018 to `r miles_per_capita_jan_2020`. This was a 5.5% increase.
-  
-  
-  
+
 Now, use these changes in driving to make forecasts from your models. 
 
 - Suppose that the number of miles driven per capita, increased by as much as the COVID boom. Using the FE estimates, what would the consequences be on the number of traffic fatalities? Please interpret the estimate.
